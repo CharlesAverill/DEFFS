@@ -7,14 +7,21 @@ on a local network, allowing those files to be accessible from any machine.
 
 - Uncomment `user_allow_other` from the last line of `/etc/fuse.conf`
 
-- Build and mount DEFFS
+- Build
 
 ```bash
 mkdir bin
 cmake --build ./ --target DEFFS -- -j 6
+```
 
-mkdir deffs_test
-./builds/DEFFS -d -s -f /tmp/deffs_test -o allow_other
+- Mount
 
-# Filesystem now mounted at /tmp/deffs_test
+```bash
+mkdir ~/deffs_mountpoint
+mkdir ~/deffs_storepoint
+
+./bin/DEFFS ~/deffs_mountpoint ~/deffs_storepoint
+# DEFFS now mounted at ~/deffs_mountpoint
+# Files are interacted with within the mountpoint, but are stored at the storepoint
+# It is not advised to modify any files in your storepoint
 ```
