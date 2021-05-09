@@ -30,4 +30,4 @@ mkdir ~/deffs_storepoint
 - [ ] Distributed
 - [ ] Encrypted
 - [ ] Fractured
-- [ ] File System
+- [x] File System
