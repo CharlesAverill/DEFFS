@@ -160,6 +160,15 @@ static int deffs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	return 0;
 }
 
+static int deffs_releasedir(const char *path, struct fuse_file_info *fi)
+{
+	struct deffs_dirp *d = get_dirp(fi);
+	(void) path;
+	closedir(d->dp);
+	free(d);
+	return 0;
+}
+
 static int deffs_write(const char *path, const char *buf, size_t size,
 							off_t offset, struct fuse_file_info *fi)
 {
