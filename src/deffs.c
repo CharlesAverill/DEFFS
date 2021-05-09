@@ -10,12 +10,7 @@
 #include <stdlib.h>
 #include <errno.h>
 
-static int deffs_getattr(const char *path, struct stat *stbuf);
-static int deffs_open(const char *path, struct fuse_file_info *fi);
-static int deffs_read(const char *path, char *buf, size_t size, off_t offset,
-		    struct fuse_file_info *fi);
-static int deffs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
-		       off_t offset, struct fuse_file_info *fi);
+#include "deffs.h"
 
 struct deffs_dirp {
 	DIR *dp;
@@ -40,7 +35,9 @@ static struct fuse_operations deffs_oper = {
 	/*
 	.releasedir	= deffs_releasedir,
 	.mknod		= deffs_mknod,
+	*/
 	.mkdir		= deffs_mkdir,
+	/*
 	.symlink	= deffs_symlink,
 	.unlink		= deffs_unlink,
 	.rmdir		= deffs_rmdir,
@@ -50,14 +47,16 @@ static struct fuse_operations deffs_oper = {
 	.chown		= deffs_chown,
 	.truncate	= deffs_truncate,
 	.ftruncate	= deffs_ftruncate,
-	.create		= deffs_create,
 	*/
+	.create		= deffs_create,
 	.open		= deffs_open,
 	.read		= deffs_read,
 	/*
 	.read_buf	= deffs_read_buf,
+	*/
 	.write		= deffs_write,
 	.write_buf	= deffs_write_buf,
+	/*
 	.statfs		= deffs_statfs,
 	.flush		= deffs_flush,
 	.release	= deffs_release,
@@ -76,6 +75,31 @@ static int deffs_getattr(const char *path, struct stat *stbuf)
 	return 0;
 }
 
+static int deffs_mkdir(const char *path, mode_t mode)
+{
+	int res;
+
+	printf("Making directory");
+
+	res = mkdir(path, mode);
+	if (res == -1)
+		return -errno;
+
+	return 0;
+}
+
+static int deffs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
+{
+	int fd;
+
+	fd = open(path, fi->flags, mode);
+	if (fd == -1)
+		return -errno;
+
+	fi->fh = fd;
+	return 0;
+}
+
 static int deffs_open(const char *path, struct fuse_file_info *fi)
 {
 	int fd;
@@ -89,7 +113,7 @@ static int deffs_open(const char *path, struct fuse_file_info *fi)
 }
 
 static int deffs_read(const char *path, char *buf, size_t size, off_t offset,
-		    struct fuse_file_info *fi)
+							struct fuse_file_info *fi)
 {
 	int res;
 
@@ -102,7 +126,7 @@ static int deffs_read(const char *path, char *buf, size_t size, off_t offset,
 }
 
 static int deffs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
-		       off_t offset, struct fuse_file_info *fi)
+							off_t offset, struct fuse_file_info *fi)
 {
 	struct deffs_dirp *d = get_dirp(fi);
 
@@ -134,6 +158,35 @@ static int deffs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	}
 
 	return 0;
+}
+
+static int deffs_write(const char *path, const char *buf, size_t size,
+							off_t offset, struct fuse_file_info *fi)
+{
+	int res;
+
+	printf("Writing at %s", path);
+
+	(void) path;
+	res = pwrite(fi->fh, buf, size, offset);
+	if (res == -1)
+		res = -errno;
+
+	return res;
+}
+
+static int deffs_write_buf(const char *path, struct fuse_bufvec *buf,
+							off_t offset, struct fuse_file_info *fi)
+{
+	struct fuse_bufvec dst = FUSE_BUFVEC_INIT(fuse_buf_size(buf));
+
+	(void) path;
+
+	dst.buf[0].flags = FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK;
+	dst.buf[0].fd = fi->fh;
+	dst.buf[0].pos = offset;
+
+	return fuse_buf_copy(&dst, buf, FUSE_BUF_SPLICE_NONBLOCK);
 }
 
 int main(int argc, char *argv[])
