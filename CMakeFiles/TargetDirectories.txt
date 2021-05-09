@@ -1,0 +1,3 @@
+/home/charlesaverill/CProjects/DEFFS/CMakeFiles/rebuild_cache.dir
+/home/charlesaverill/CProjects/DEFFS/CMakeFiles/DEFFS.dir
+/home/charlesaverill/CProjects/DEFFS/CMakeFiles/edit_cache.dir
