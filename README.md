@@ -10,7 +10,7 @@ on a local network, allowing those files to be accessible from any machine.
 - Build and mount DEFFS
 
 ```bash
-mkdir builds
+mkdir bin
 cmake --build ./ --target DEFFS -- -j 6
 
 mkdir deffs_test
