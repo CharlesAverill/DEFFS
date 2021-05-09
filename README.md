@@ -25,3 +25,9 @@ mkdir ~/deffs_storepoint
 # Files are interacted with within the mountpoint, but are stored at the storepoint
 # It is not advised to modify any files in your storepoint
 ```
+
+# Progress
+- [ ] Distributed
+- [ ] Encrypted
+- [ ] Fractured
+- [ ] File System
