@@ -1,1 +1,0 @@
-/usr/bin/cc    CMakeFiles/DEFFS.dir/src/main.c.o  -o builds/DEFFS /usr/lib/x86_64-linux-gnu/libfuse.so 
