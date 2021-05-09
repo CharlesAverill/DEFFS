@@ -13,6 +13,8 @@
 #include "deffs.h"
 #include "attr.h"
 
+char *mountpoint;
+
 struct deffs_dirp {
 	DIR *dp;
 	struct dirent *entry;
@@ -25,7 +27,7 @@ static inline struct deffs_dirp *get_dirp(struct fuse_file_info *fi)
 }
 
 static struct fuse_operations deffs_oper = {
-	.init	   	= NULL, //deffs_init,
+	.init	   	= deffs_init,
 	.destroy	= NULL, //deffs_destroy,
 	.getattr	= deffs_getattr,
 	.fgetattr	= deffs_fgetattr,
@@ -91,6 +93,19 @@ static struct fuse_operations deffs_oper = {
 #endif
 };
 
+void *deffs_init(struct fuse_conn_info *conn)
+{
+#ifdef __APPLE__
+	FUSE_ENABLE_SETVOLNAME(conn);
+	FUSE_ENABLE_XTIMES(conn);
+#endif
+	if(mountpoint == NULL){
+		exit(1);
+	}
+	chroot(mountpoint);
+	return NULL;
+}
+
 static int deffs_getattr(const char *path, struct stat *stbuf)
 {
 	int res;
@@ -150,8 +165,6 @@ static int deffs_opendir(const char *path, struct fuse_file_info *fi)
 static int deffs_mkdir(const char *path, mode_t mode)
 {
 	int res;
-
-	printf("Making directory");
 
 	res = mkdir(path, mode);
 	if (res == -1)
@@ -371,6 +384,6 @@ static int deffs_release(const char *path, struct fuse_file_info *fi)
 
 int main(int argc, char *argv[])
 {
-	umask(0);
+	mountpoint = argv[4];
 	return fuse_main(argc, argv, &deffs_oper, NULL);
 }

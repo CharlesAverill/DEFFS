@@ -1,3 +1,4 @@
+void *deffs_init(struct fuse_conn_info *conn);
 static int deffs_getattr(const char *path, struct stat *stbuf);
 static int deffs_fgetattr(const char *path, struct stat *stbuf,
 			struct fuse_file_info *fi);
