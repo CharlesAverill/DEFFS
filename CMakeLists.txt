@@ -13,4 +13,4 @@ include_directories(${FUSE_INCLUDE_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/include)
 link_libraries(${FUSE_LIBRARIES})
 
-add_executable(DEFFS src/deffs.c src/attr.c)
+add_executable(DEFFS src/deffs.c src/attr.c src/utils.c src/arguments.c)

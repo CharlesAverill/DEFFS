@@ -10,10 +10,12 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#include "utils.h"
 #include "deffs.h"
 #include "attr.h"
+#include "arguments.h"
 
-char *mountpoint;
+char *storepoint;
 
 struct deffs_dirp {
 	DIR *dp;
@@ -76,15 +78,15 @@ static struct fuse_operations deffs_oper = {
 	.flock		= NULL, //deffs_flock,
 #endif
 #ifdef __APPLE__
-	.setvolname	= deffs_setvolname,
-	.exchange	= deffs_exchange,
-	.getxtimes	= deffs_getxtimes,
-	.setbkuptime	= deffs_setbkuptime,
-	.setchgtime	= deffs_setchgtime,
-	.setcrtime	= deffs_setcrtime,
-	.chflags	= deffs_chflags,
-	.setattr_x	= deffs_setattr_x,
-	.fsetattr_x	= deffs_fsetattr_x,
+	.setvolname	= NULL, //deffs_setvolname,
+	.exchange	= NULL, //deffs_exchange,
+	.getxtimes	= NULL, //deffs_getxtimes,
+	.setbkuptime	= NULL, //deffs_setbkuptime,
+	.setchgtime	= NULL, //deffs_setchgtime,
+	.setcrtime	= NULL, //deffs_setcrtime,
+	.chflags	= NULL, //deffs_chflags,
+	.setattr_x	= NULL, //deffs_setattr_x,
+	.fsetattr_x	= NULL, //deffs_fsetattr_x,
 #endif
 
 	.flag_nullpath_ok = 1,
@@ -99,16 +101,14 @@ void *deffs_init(struct fuse_conn_info *conn)
 	FUSE_ENABLE_SETVOLNAME(conn);
 	FUSE_ENABLE_XTIMES(conn);
 #endif
-	if(mountpoint == NULL){
-		exit(1);
-	}
-	chroot(mountpoint);
 	return NULL;
 }
 
 static int deffs_getattr(const char *path, struct stat *stbuf)
 {
 	int res;
+
+	path = deffs_path_prepend(path, storepoint);
 
 	res = lstat(path, stbuf);
 	if (res == -1)
@@ -121,6 +121,8 @@ static int deffs_fgetattr(const char *path, struct stat *stbuf,
 			struct fuse_file_info *fi)
 {
 	int res;
+
+	path = deffs_path_prepend(path, storepoint);
 
 	(void) path;
 
@@ -135,6 +137,8 @@ static int deffs_access(const char *path, int mask)
 {
 	int res;
 
+	path = deffs_path_prepend(path, storepoint);
+
 	res = access(path, mask);
 	if (res == -1)
 		return -errno;
@@ -148,6 +152,8 @@ static int deffs_opendir(const char *path, struct fuse_file_info *fi)
 	struct deffs_dirp *d = malloc(sizeof(struct deffs_dirp));
 	if (d == NULL)
 		return -ENOMEM;
+
+	path = deffs_path_prepend(path, storepoint);
 
 	d->dp = opendir(path);
 	if (d->dp == NULL) {
@@ -166,6 +172,8 @@ static int deffs_mkdir(const char *path, mode_t mode)
 {
 	int res;
 
+	path = deffs_path_prepend(path, storepoint);
+
 	res = mkdir(path, mode);
 	if (res == -1)
 		return -errno;
@@ -176,6 +184,8 @@ static int deffs_mkdir(const char *path, mode_t mode)
 static int deffs_chmod(const char *path, mode_t mode)
 {
 	int res;
+
+	path = deffs_path_prepend(path, storepoint);
 
 #ifdef __APPLE__
 	res = lchmod(path, mode);
@@ -192,6 +202,8 @@ static int deffs_chown(const char *path, uid_t uid, gid_t gid)
 {
 	int res;
 
+	path = deffs_path_prepend(path, storepoint);
+
 	res = lchown(path, uid, gid);
 	if (res == -1)
 		return -errno;
@@ -202,6 +214,8 @@ static int deffs_chown(const char *path, uid_t uid, gid_t gid)
 static int deffs_truncate(const char *path, off_t size)
 {
 	int res;
+
+	path = deffs_path_prepend(path, storepoint);
 
 	res = truncate(path, size);
 	if (res == -1)
@@ -229,6 +243,8 @@ static int deffs_utimens(const char *path, const struct timespec ts[2])
 {
 	int res;
 
+	path = deffs_path_prepend(path, storepoint);
+
 	/* don't use utime/utimes since they follow symlinks */
 	res = utimensat(0, path, ts, AT_SYMLINK_NOFOLLOW);
 	if (res == -1)
@@ -242,6 +258,8 @@ static int deffs_create(const char *path, mode_t mode, struct fuse_file_info *fi
 {
 	int fd;
 
+	path = deffs_path_prepend(path, storepoint);
+
 	fd = open(path, fi->flags, mode);
 	if (fd == -1)
 		return -errno;
@@ -253,6 +271,8 @@ static int deffs_create(const char *path, mode_t mode, struct fuse_file_info *fi
 static int deffs_open(const char *path, struct fuse_file_info *fi)
 {
 	int fd;
+
+	path = deffs_path_prepend(path, storepoint);
 
 	fd = open(path, fi->flags);
 	if (fd == -1)
@@ -267,6 +287,8 @@ static int deffs_read(const char *path, char *buf, size_t size, off_t offset,
 {
 	int res;
 
+	path = deffs_path_prepend(path, storepoint);
+
 	(void) path;
 	res = pread(fi->fh, buf, size, offset);
 	if (res == -1)
@@ -280,12 +302,15 @@ static int deffs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 {
 	struct deffs_dirp *d = get_dirp(fi);
 
+	path = deffs_path_prepend(path, storepoint);
+
 	(void) path;
 	if (offset != d->offset) {
 		seekdir(d->dp, offset);
 		d->entry = NULL;
 		d->offset = offset;
 	}
+
 	while (1) {
 		struct stat st;
 		off_t nextoff;
@@ -313,6 +338,7 @@ static int deffs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 static int deffs_releasedir(const char *path, struct fuse_file_info *fi)
 {
 	struct deffs_dirp *d = get_dirp(fi);
+	path = deffs_path_prepend(path, storepoint);
 	(void) path;
 	closedir(d->dp);
 	free(d);
@@ -323,6 +349,8 @@ static int deffs_write(const char *path, const char *buf, size_t size,
 			off_t offset, struct fuse_file_info *fi)
 {
 	int res;
+
+	path = deffs_path_prepend(path, storepoint);
 
 	(void) path;
 	res = pwrite(fi->fh, buf, size, offset);
@@ -337,6 +365,8 @@ static int deffs_write_buf(const char *path, struct fuse_bufvec *buf,
 {
 	struct fuse_bufvec dst = FUSE_BUFVEC_INIT(fuse_buf_size(buf));
 
+	path = deffs_path_prepend(path, storepoint);
+
 	(void) path;
 
 	dst.buf[0].flags = FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK;
@@ -350,6 +380,8 @@ static int deffs_statfs(const char *path, struct statvfs *stbuf)
 {
 	int res;
 
+	path = deffs_path_prepend(path, storepoint);
+
 	res = statvfs(path, stbuf);
 	if (res == -1)
 		return -errno;
@@ -360,6 +392,8 @@ static int deffs_statfs(const char *path, struct statvfs *stbuf)
 static int deffs_flush(const char *path, struct fuse_file_info *fi)
 {
 	int res;
+
+	path = deffs_path_prepend(path, storepoint);
 
 	(void) path;
 	/* This is called from every close on an open file, so call the
@@ -376,14 +410,48 @@ static int deffs_flush(const char *path, struct fuse_file_info *fi)
 
 static int deffs_release(const char *path, struct fuse_file_info *fi)
 {
+	path = deffs_path_prepend(path, storepoint);
+
 	(void) path;
 	close(fi->fh);
 
 	return 0;
 }
 
+const char *argp_program_version = "DEFFS 0.0.1";
+const char *argp_program_bug_address = "charlesaverill20@gmail.com";
+static char doc[] = "Distributed, Encrypted, Fractured File System";
+static char args_doc[] = "MOUNTPOINT STOREPOINT";
+
+static struct argp_option options[] = {
+    /*
+    {"mountpoint", 'm', "STRING", 0, "The path to the folder in which DEFFS will be mounted"},
+    {"storepoint", 's', "STRING", 0, "The path to the folder in which DEFFS file headers will be stored persistently"},
+    */
+    { 0 }
+};
+
+static struct argp argp = { options, parse_opt, args_doc, doc, 0, 0, 0 };
+
 int main(int argc, char *argv[])
 {
-	mountpoint = argv[4];
-	return fuse_main(argc, argv, &deffs_oper, NULL);
+	struct arguments arguments;
+
+    argp_parse(&argp, argc, argv, 0, 0, &arguments);
+
+	if(arguments.points[0] == NULL){
+		printf("ERROR: Mountpoint required\n");
+		exit(1);
+	}
+	if(arguments.points[1] == NULL){
+		printf("ERROR: Storepoint required\n");
+		exit(1);
+	}
+
+	storepoint = arguments.points[1];
+
+	char *static_argv[] = {argv[0], "/tmp/deffs_test", "-o", "allow_other", "-o", "nonempty", "-d", "-s", "-f"};
+	int static_argc = 9;
+
+	return fuse_main(static_argc, static_argv, &deffs_oper, NULL);
 }

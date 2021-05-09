@@ -1,6 +1,7 @@
 #include <fuse.h>
 
 #include "attr.h"
+#include "utils.h"
 
 #ifdef HAVE_SETXATTR
 /* xattr operations are optional and can safely be left unimplemented */
