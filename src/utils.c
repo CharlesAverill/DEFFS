@@ -6,8 +6,7 @@
 * AUTHOR: Charles Averill
 */
 
-#include <string.h>
-#include <stdio.h>
+#include "utils.h"
 
 const char *deffs_path_prepend(const char *originalPath, char *mountpoint){
     char *pch;

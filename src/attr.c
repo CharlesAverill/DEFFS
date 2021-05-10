@@ -1,3 +1,11 @@
+/*
+* FILENAME: attr.c
+*
+* DESCRIPTION: FUSE callbacks relating to file attributes
+*
+* AUTHOR: Charles Averill
+*/
+
 #include "attr.h"
 
 int deffs_getattr(const char *path, struct stat *stbuf)

@@ -15,4 +15,4 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 link_libraries(${FUSE_LIBRARIES})
 link_libraries(crypto)
 
-add_executable(DEFFS src/deffs.c src/attr.c src/utils.c src/arguments.c src/crypto.c)
+add_executable(DEFFS src/deffs.c src/attr.c src/utils.c src/arguments.c src/rw.c src/crypto.c src/perms.c)
