@@ -1,3 +1,11 @@
+/*
+* FILENAME: arguments.c
+*
+* DESCRIPTION: Argparse parsing for DEFFS
+*
+* AUTHOR: Charles Averill
+*/
+
 #include "arguments.h"
 
 error_t parse_opt(int key, char *arg, struct argp_state *state) {

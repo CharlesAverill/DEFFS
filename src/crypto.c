@@ -1,3 +1,20 @@
+/*
+* FILENAME: crypto.c
+*
+* DESCRIPTION: A collection of cryptography methods to utilize OpenSSL's
+*              AES encryption of strings
+*
+* USAGE: char *plaintext = "Hello World!";
+*
+*        struct EncryptionData *cipher = get_ciphertext(plaintext);
+*        printf("Cipher text: --%s--\n", cipher->ciphertext);
+*
+*        struct EncryptionData *plain = get_plaintext(cipher->ciphertext, cipher->key);
+*        printf("Cipher text: --%s--\n", plain->plaintext);
+*
+* AUTHOR: Charles Averill
+*/
+
 #include "crypto.h"
 
 struct EncryptionData *get_ciphertext(char *plaintext){

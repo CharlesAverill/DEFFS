@@ -1,3 +1,11 @@
+/*
+* FILENAME: utils.c
+*
+* DESCRIPTION: Necessary utilities for DEFFS
+*
+* AUTHOR: Charles Averill
+*/
+
 #include <string.h>
 #include <stdio.h>
 
