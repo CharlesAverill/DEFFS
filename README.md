@@ -1,6 +1,6 @@
 # DEFFS
-A custom FUSE-based filesystem that distributes shards of data across machines
-on a local network, allowing those files to be accessible from any machine.
+A custom FUSE-based filesystem that distributes encrypted shards of data across
+machines on a local network, allowing those files to be accessible from any machine.
 
 # Installation
 - Install FUSE with `sudo apt-get install libfuse-dev`
