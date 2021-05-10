@@ -11,10 +11,10 @@
 #include <errno.h>
 
 #include "utils.h"
+#include "deffs.h"
 #include "attr.h"
 #include "arguments.h"
 #include "crypto.h"
-#include "deffs.h"
 
 char *mountpoint;
 char *storepoint;
@@ -104,35 +104,6 @@ void *deffs_init(struct fuse_conn_info *conn)
 	FUSE_ENABLE_XTIMES(conn);
 #endif
 	return NULL;
-}
-
-static int deffs_getattr(const char *path, struct stat *stbuf)
-{
-	int res;
-
-	path = deffs_path_prepend(path, storepoint);
-
-	res = lstat(path, stbuf);
-	if (res == -1)
-		return -errno;
-
-	return 0;
-}
-
-static int deffs_fgetattr(const char *path, struct stat *stbuf,
-			struct fuse_file_info *fi)
-{
-	int res;
-
-	path = deffs_path_prepend(path, storepoint);
-
-	(void) path;
-
-	res = fstat(fi->fh, stbuf);
-	if (res == -1)
-		return -errno;
-
-	return 0;
 }
 
 static int deffs_access(const char *path, int mask)

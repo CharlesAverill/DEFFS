@@ -1,7 +1,10 @@
+#ifndef DEFFS_H
+#define DEFFS_H
+
+extern char *mountpoint;
+extern char *storepoint;
+
 void *deffs_init(struct fuse_conn_info *conn);
-static int deffs_getattr(const char *path, struct stat *stbuf);
-static int deffs_fgetattr(const char *path, struct stat *stbuf,
-			struct fuse_file_info *fi);
 static int deffs_access(const char *path, int mask);
 static int deffs_opendir(const char *path, struct fuse_file_info *fi);
 
@@ -32,3 +35,5 @@ static int deffs_statfs(const char *path, struct statvfs *stbuf);
 
 static int deffs_flush(const char *path, struct fuse_file_info *fi);
 static int deffs_release(const char *path, struct fuse_file_info *fi);
+
+#endif

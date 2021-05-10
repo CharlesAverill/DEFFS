@@ -1,7 +1,33 @@
-#include <fuse.h>
-
 #include "attr.h"
-#include "utils.h"
+
+int deffs_getattr(const char *path, struct stat *stbuf)
+{
+	int res;
+
+	path = deffs_path_prepend(path, storepoint);
+
+	res = lstat(path, stbuf);
+	if (res == -1)
+		return -errno;
+
+	return 0;
+}
+
+int deffs_fgetattr(const char *path, struct stat *stbuf,
+			struct fuse_file_info *fi)
+{
+	int res;
+
+	path = deffs_path_prepend(path, storepoint);
+
+	(void) path;
+
+	res = fstat(fi->fh, stbuf);
+	if (res == -1)
+		return -errno;
+
+	return 0;
+}
 
 #ifdef HAVE_SETXATTR
 /* xattr operations are optional and can safely be left unimplemented */
