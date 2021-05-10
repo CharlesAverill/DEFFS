@@ -6,10 +6,10 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <string.h>
+#include <stdio.h>
 
 typedef struct EncryptionData {
-    AES_KEY AES_key;
-    unsigned char key[128];
+    AES_KEY key;
 
     unsigned char *plaintext;
     unsigned char *ciphertext;
@@ -17,5 +17,7 @@ typedef struct EncryptionData {
 
 struct EncryptionData *get_ciphertext(char plaintext[]);
 struct EncryptionData *get_plaintext(char ciphertext[], unsigned char key[16]);
+
+EncryptionData *get_encrypted_shards(char *plaintext);
 
 #endif

@@ -131,6 +131,33 @@ int deffs_write(const char *path, const char *buf, size_t size,
 
 	path = deffs_path_prepend(path, storepoint);
 
+	// Copy path to non-constant copy for fopen
+	char nonconst_path[strlen(path) + 1];
+	strcpy(nonconst_path, path);
+
+    // Open plaintext file
+    FILE *plain_pointer;
+    plain_pointer = fopen(nonconst_path, "r");
+    if(plain_pointer == NULL){
+        printf("Could not open file %s for encrypting, %s\n", nonconst_path, path);
+		exit(1);
+    }
+
+    // Find size of file
+    fseek(plain_pointer, 0, SEEK_END);
+    long sz = ftell(plain_pointer);
+    fseek(plain_pointer, 0, SEEK_SET);
+
+    // Read all file contents into plaintext
+    char *plaintext = malloc(sz + 1);
+    fread(plaintext, 1, sz, plain_pointer);
+    fclose(plain_pointer);
+
+    plaintext[sz] = 0;
+
+	EncryptionData *shard = get_encrypted_shards(plaintext);
+	printf("File: %s\nEncrypted: %s\nEncryption Key: %u\n", nonconst_path, shard->ciphertext, *shard->key.rd_key);
+
 	(void) path;
 	res = pwrite(fi->fh, buf, size, offset);
 	if (res == -1)
