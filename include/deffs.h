@@ -25,4 +25,6 @@ static inline struct deffs_dirp *get_dirp(struct fuse_file_info *fi)
 	return (struct deffs_dirp *) (uintptr_t) fi->fh;
 }
 
+void *deffs_init(struct fuse_conn_info *conn);
+
 #endif

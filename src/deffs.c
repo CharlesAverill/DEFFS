@@ -26,7 +26,7 @@ char *mountpoint;
 char *storepoint;
 
 static struct fuse_operations deffs_oper = {
-	.init	   	= NULL, //deffs_init,
+	.init	   	= deffs_init,
 	.destroy	= NULL, //deffs_destroy,
 	.getattr	= deffs_getattr,
 	.fgetattr	= deffs_fgetattr,
