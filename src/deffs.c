@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
 {
 	struct arguments arguments;
 
-    argp_parse(&argp, argc, argv, 0, 0, &arguments);
+	argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
 	if(arguments.points[0] == NULL){
 		printf("ERROR: Mountpoint required\n");
