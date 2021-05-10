@@ -71,6 +71,19 @@ int deffs_mkdir(const char *path, mode_t mode)
 	return 0;
 }
 
+int deffs_unlink(const char *path)
+{
+	int res;
+
+	path = deffs_path_prepend(path, storepoint);
+
+	res = unlink(path);
+	if (res == -1)
+		return -errno;
+
+	return 0;
+}
+
 int deffs_read(const char *path, char *buf, size_t size, off_t offset,
 			struct fuse_file_info *fi)
 {
@@ -155,8 +168,23 @@ int deffs_write(const char *path, const char *buf, size_t size,
 
     plaintext[sz] = 0;
 
+	// Encrypt plaintext
 	EncryptionData *shard = get_encrypted_shards(plaintext);
-	printf("File: %s\nEncrypted: %s\nEncryption Key: %u\n", nonconst_path, shard->ciphertext, *shard->key.rd_key);
+
+	// Generate shard filepath
+	char filename[38];
+	random_string(filename, 32);
+	strcat(filename, ".shard");
+
+	char filepath[strlen(shardpoint) + strlen(filename) + 1];
+	strcpy(filepath, shardpoint);
+	strcat(filepath, filename);
+
+	// Write encrypted data to shard
+	FILE *shard_file;
+	shard_file = fopen(filepath, "w");
+	fprintf(shard_file, "%s", shard->ciphertext);
+	fclose(shard_file);
 
 	(void) path;
 	res = pwrite(fi->fh, buf, size, offset);

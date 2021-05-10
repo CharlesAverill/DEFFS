@@ -13,6 +13,7 @@
 
 extern char *mountpoint;
 extern char *storepoint;
+extern char *shardpoint;
 
 struct deffs_dirp {
 	DIR *dp;

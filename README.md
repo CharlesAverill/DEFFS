@@ -1,8 +1,9 @@
 # DEFFS
 A custom FUSE-based filesystem that distributes encrypted shards of data across
-machines on a local network, allowing those files to be accessible from any machine.
+machines on a local network, allowing those files to be accessible from any
+machine.
 
-# Installation
+## Installation
 - Install FUSE with `sudo apt-get install libfuse-dev`
 
 - Uncomment `user_allow_other` from the last line of `/etc/fuse.conf`
@@ -27,7 +28,27 @@ mkdir ~/deffs_storepoint
 # It is not advised to modify any files in your storepoint
 ```
 
-# Progress
+## Usage
+Right now, DEFFS can be used like a typical EXT4 filesystem. It will store
+encrypted data shards in `<storepoint>/.shards/`, so modifying files in that
+folder or the folder itself will break DEFFS.
+
+Currently, DEFFS only encrypts files when the `write` syscall is called. Soon,
+`write_buf` will be supported as well. Files are decrypted upon `read`.
+
+Proper usage of DEFFS looks like this:
+
+```bash
+cd mountpoint
+
+mkdir test
+touch hello
+echo "hello world" > test/helloworld.txt
+
+cat test/helloworld.txt
+```
+
+## Progress
 - [ ] Distributed
 - [ ] Encrypted
 - [ ] Fractured

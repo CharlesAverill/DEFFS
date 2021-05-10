@@ -24,6 +24,7 @@
 
 char *mountpoint;
 char *storepoint;
+char *shardpoint;
 
 static struct fuse_operations deffs_oper = {
 	.init	   	= deffs_init,
@@ -40,7 +41,7 @@ static struct fuse_operations deffs_oper = {
 	.mknod		= NULL, //deffs_mknod,
 	.mkdir		= deffs_mkdir,
 	.symlink	= NULL, //deffs_symlink,
-	.unlink		= NULL, //deffs_unlink,
+	.unlink		= deffs_unlink,
 	.rmdir		= NULL, //deffs_rmdir,
 	.rename		= NULL, //deffs_rename,
 	.link		= NULL, //deffs_link,
@@ -98,6 +99,17 @@ void *deffs_init(struct fuse_conn_info *conn)
 	FUSE_ENABLE_SETVOLNAME(conn);
 	FUSE_ENABLE_XTIMES(conn);
 #endif
+
+	// Create the shardpoint directory
+	struct stat st = {0};
+
+	if (stat(shardpoint, &st) == -1) {
+	    mkdir(shardpoint, 0700);
+	} else {
+		printf("%s", "Shards directory detected. When mounting DEFFS, use a fresh mountpoint and storepoint");
+		exit(1);
+	}
+
 	return NULL;
 }
 
@@ -114,15 +126,22 @@ static struct argp argp = { options, parse_opt, args_doc, doc, 0, 0, 0 };
 
 int main(int argc, char *argv[])
 {
+	// Argument parsing
 	struct arguments arguments;
 
 	argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
+	// Setup mount, store, and shardpoints
 	mountpoint = arguments.points[0];
 	storepoint = arguments.points[1];
 
-	char *static_argv[] = {argv[0], mountpoint, "-o", "allow_other", "-o", "nonempty", "-d", "-s", "-f"};
-	int static_argc = 9;
+	shardpoint = malloc(strlen(storepoint) + strlen("/.shards/") + 1);
+	strcpy(shardpoint, storepoint);
+	strcat(shardpoint, "/.shards/");
+
+	// Start FUSE
+	char *static_argv[] = {argv[0], mountpoint, "-o", "allow_other", "-d", "-s", "-f"};
+	int static_argc = sizeof(static_argv) / sizeof(static_argv[0]);
 
 	return fuse_main(static_argc, static_argv, &deffs_oper, NULL);
 }

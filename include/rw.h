@@ -4,6 +4,7 @@
 #include <fuse.h>
 #include <errno.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include "utils.h"
 #include "deffs.h"
@@ -14,6 +15,7 @@ int deffs_open(const char *path, struct fuse_file_info *fi);
 
 int deffs_opendir(const char *path, struct fuse_file_info *fi);
 int deffs_mkdir(const char *path, mode_t mode);
+int deffs_unlink(const char *path);
 
 int deffs_read(const char *path, char *buf, size_t size, off_t offset,
 			struct fuse_file_info *fi);

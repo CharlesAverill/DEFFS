@@ -23,7 +23,7 @@ const char *deffs_path_prepend(const char *originalPath, char *mountpoint){
 }
 
 void random_string(char *output, int length){
-    char charset[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
+    char charset[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
 
     for(int i = 0; i < length; i++){
         output[i] = charset[rand() % (sizeof(charset) - 1)];
