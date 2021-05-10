@@ -4,7 +4,7 @@ machines on a local network, allowing those files to be accessible from any
 machine.
 
 ## Installation
-- Install FUSE with `sudo apt-get install libfuse-dev`
+- Install dependencies - `sudo apt-get install libfuse-dev libssl-dev`
 
 - Uncomment `user_allow_other` from the last line of `/etc/fuse.conf`
 
