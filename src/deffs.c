@@ -11,10 +11,12 @@
 #include <errno.h>
 
 #include "utils.h"
-#include "deffs.h"
 #include "attr.h"
 #include "arguments.h"
+#include "crypto.h"
+#include "deffs.h"
 
+char *mountpoint;
 char *storepoint;
 
 struct deffs_dirp {
@@ -448,9 +450,20 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	mountpoint = arguments.points[0];
 	storepoint = arguments.points[1];
 
-	char *static_argv[] = {argv[0], "/tmp/deffs_test", "-o", "allow_other", "-o", "nonempty", "-d", "-s", "-f"};
+	/*
+	char *plaintext = "Hello world";
+
+	struct EncryptionData *cipher = get_ciphertext(plaintext);
+	printf("Cipher text: --%s--\n", cipher->ciphertext);
+
+	struct EncryptionData *plain = get_plaintext(cipher->ciphertext, cipher->key);
+	printf("Cipher text: --%s--\n", plain->plaintext);
+	*/
+
+	char *static_argv[] = {argv[0], mountpoint, "-o", "allow_other", "-o", "nonempty", "-d", "-s", "-f"};
 	int static_argc = 9;
 
 	return fuse_main(static_argc, static_argv, &deffs_oper, NULL);

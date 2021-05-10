@@ -21,6 +21,7 @@ mkdir ~/deffs_mountpoint
 mkdir ~/deffs_storepoint
 
 ./bin/DEFFS ~/deffs_mountpoint ~/deffs_storepoint
+
 # DEFFS now mounted at ~/deffs_mountpoint
 # Files are interacted with within the mountpoint, but are stored at the storepoint
 # It is not advised to modify any files in your storepoint
