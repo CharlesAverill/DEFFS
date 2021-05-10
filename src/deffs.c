@@ -118,15 +118,6 @@ int main(int argc, char *argv[])
 
 	argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
-	if(arguments.points[0] == NULL){
-		printf("ERROR: Mountpoint required\n");
-		exit(1);
-	}
-	if(arguments.points[1] == NULL){
-		printf("ERROR: Storepoint required\n");
-		exit(1);
-	}
-
 	mountpoint = arguments.points[0];
 	storepoint = arguments.points[1];
 
