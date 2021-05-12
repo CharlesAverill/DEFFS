@@ -5,8 +5,9 @@
 *                callbacks. Compiles to executable that mounts DEFFS filesystem.
 *
 * USAGE: cmake --build ./ --target DEFFS -- -j 6
-*        mkdir /tmp/deffs mkdir /tmp/deffs_storage
-*        sudo ./bin/DEFFS /tmp/deffs /tmp/deffs_storage
+*        mkdir ~/deffs
+*        mkdir ~/deffs_storage
+*        ./bin/DEFFS ~/deffs ~/deffs_storage
 *
 * AUTHOR: Charles Averill
 */
