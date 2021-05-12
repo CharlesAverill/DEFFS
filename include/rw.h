@@ -18,20 +18,20 @@ int deffs_mkdir(const char *path, mode_t mode);
 int deffs_unlink(const char *path);
 
 int deffs_read(const char *path, char *buf, size_t size, off_t offset,
-			struct fuse_file_info *fi);
+            struct fuse_file_info *fi);
 int deffs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
-			off_t offset, struct fuse_file_info *fi);
+            off_t offset, struct fuse_file_info *fi);
 
 int deffs_write(const char *path, const char *buf, size_t size,
-			off_t offset, struct fuse_file_info *fi);
+            off_t offset, struct fuse_file_info *fi);
 int deffs_write_buf(const char *path, struct fuse_bufvec *buf,
-			off_t offset, struct fuse_file_info *fi);
+            off_t offset, struct fuse_file_info *fi);
 
 int deffs_flush(const char *path, struct fuse_file_info *fi);
 
 int deffs_truncate(const char *path, off_t size);
 int deffs_ftruncate(const char *path, off_t size,
-			struct fuse_file_info *fi);
+            struct fuse_file_info *fi);
 
 int deffs_utimens(const char *path, const struct timespec ts[2]);
 
