@@ -110,8 +110,8 @@ void *deffs_init(struct fuse_conn_info *conn)
     return NULL;
 }
 
-const char *argp_program_version     = "DEFFS 0.0.1";
-const char *argp_program_bug_address = "charlesaverill20@gmail.com";
+const char *argp_program_version     = "DEFFS 0.0.2";
+const char *argp_program_bug_address = "charles.averill@utdallas.edu";
 const char doc[]                     = "Distributed, Encrypted, Fractured File System";
 static char args_doc[]               = "MOUNTPOINT STOREPOINT";
 
