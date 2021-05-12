@@ -17,7 +17,8 @@
 
 #include "crypto.h"
 
-struct EncryptionData *get_ciphertext(char *plaintext){
+struct EncryptionData *get_ciphertext(char *plaintext)
+{
     // Initialize cipher variables
     AES_KEY AES_key;
     unsigned char key[17];
@@ -25,16 +26,15 @@ struct EncryptionData *get_ciphertext(char *plaintext){
 
     // Fill the key with random values
     random_string(key, 17);
-    printf("Random key: %s\n", key);
 
-    AES_set_encrypt_key((const unsigned char *) key, 128, &AES_key);
+    AES_set_encrypt_key((const unsigned char *)key, 128, &AES_key);
 
     // Encrypt plaintext
     AES_encrypt(plaintext, ciphertext, &AES_key);
 
     // Allocate memory for returned struct
     struct EncryptionData *output = malloc(sizeof(struct EncryptionData));
-    if(output == NULL){
+    if (output == NULL) {
         return NULL;
     }
 
@@ -43,13 +43,13 @@ struct EncryptionData *get_ciphertext(char *plaintext){
 
     output->plaintext = malloc(strlen(plaintext));
     if (output->plaintext == NULL) {
-        free (output);
+        free(output);
         return NULL;
     }
 
     output->ciphertext = malloc(strlen(ciphertext));
     if (output->ciphertext == NULL) {
-        free (output);
+        free(output);
         return NULL;
     }
 
@@ -59,24 +59,25 @@ struct EncryptionData *get_ciphertext(char *plaintext){
     return output;
 }
 
-struct EncryptionData *get_ciphertext_with_key(char *plaintext, unsigned char key[16]){
+struct EncryptionData *get_ciphertext_with_key(char *plaintext, unsigned char key[16])
+{
     // Initialize cipher variables
     AES_KEY AES_key;
     unsigned char ciphertext[(strlen(plaintext) + 127) / 128];
 
-    key[0]=1;
-    for(int i = 1; i <= 15; i++) {
+    key[0] = 1;
+    for (int i = 1; i <= 15; i++) {
         key[i] = 0;
     }
 
-    AES_set_encrypt_key((const unsigned char *) key, 128, &AES_key);
+    AES_set_encrypt_key((const unsigned char *)key, 128, &AES_key);
 
     // Encrypt plaintext
     AES_encrypt(plaintext, ciphertext, &AES_key);
 
     // Allocate memory for returned struct
     struct EncryptionData *output = malloc(sizeof(struct EncryptionData));
-    if(output == NULL){
+    if (output == NULL) {
         return NULL;
     }
 
@@ -85,13 +86,13 @@ struct EncryptionData *get_ciphertext_with_key(char *plaintext, unsigned char ke
 
     output->plaintext = malloc(strlen(plaintext));
     if (output->plaintext == NULL) {
-        free (output);
+        free(output);
         return NULL;
     }
 
     output->ciphertext = malloc(strlen(ciphertext));
     if (output->ciphertext == NULL) {
-        free (output);
+        free(output);
         return NULL;
     }
 
@@ -101,19 +102,20 @@ struct EncryptionData *get_ciphertext_with_key(char *plaintext, unsigned char ke
     return output;
 }
 
-struct EncryptionData *get_plaintext(char ciphertext[], unsigned char key[16]){
+struct EncryptionData *get_plaintext(char ciphertext[], unsigned char key[16])
+{
     // Initialize cipher variables
     AES_KEY AES_key;
     unsigned char plaintext[strlen(ciphertext)];
 
-    AES_set_decrypt_key((const unsigned char *) key, 128, &AES_key);
+    AES_set_decrypt_key((const unsigned char *)key, 128, &AES_key);
 
     // Decrypt ciphertext
     AES_decrypt(ciphertext, plaintext, &AES_key);
 
     // Allocate memory for returned struct
     struct EncryptionData *output = malloc(sizeof(struct EncryptionData));
-    if(output == NULL){
+    if (output == NULL) {
         return NULL;
     }
 
@@ -122,13 +124,13 @@ struct EncryptionData *get_plaintext(char ciphertext[], unsigned char key[16]){
 
     output->plaintext = malloc(strlen(plaintext));
     if (output->plaintext == NULL) {
-        free (output);
+        free(output);
         return NULL;
     }
 
     output->ciphertext = malloc(strlen(ciphertext));
     if (output->ciphertext == NULL) {
-        free (output);
+        free(output);
         return NULL;
     }
 
@@ -138,14 +140,16 @@ struct EncryptionData *get_plaintext(char ciphertext[], unsigned char key[16]){
     return output;
 }
 
-EncryptionData *get_encrypted_shards(char *plaintext){
+EncryptionData *get_encrypted_shards(char *plaintext)
+{
     // Encrypt plaintext
     struct EncryptionData *cipher = get_ciphertext(plaintext);
 
     return cipher;
 }
 
-void get_sha256_hash(char *plaintext, char *obuf){
+void get_sha256_hash(char *plaintext, char *obuf)
+{
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
@@ -154,8 +158,7 @@ void get_sha256_hash(char *plaintext, char *obuf){
     SHA256_Final(hash, &sha256);
 
     int i = 0;
-    for(i = 0; i < SHA256_DIGEST_LENGTH; i++)
-    {
+    for (i = 0; i < SHA256_DIGEST_LENGTH; i++) {
         sprintf(obuf + (i * 2), "%02x", hash[i]);
     }
     obuf[64] = '\0';

@@ -37,7 +37,6 @@ int deffs_open(const char *path, struct fuse_file_info *fi)
 {
     int fd;
 
-
     // Copy path to non-constant copy for fopen
     char nonconst_path[strlen(storepoint) + strlen(path) + 1];
     strcpy(nonconst_path, path);
@@ -58,7 +57,6 @@ int deffs_opendir(const char *path, struct fuse_file_info *fi)
     if (d == NULL)
         return -ENOMEM;
 
-
     // Copy path to non-constant copy for fopen
     char nonconst_path[strlen(storepoint) + strlen(path) + 1];
     strcpy(nonconst_path, path);
@@ -71,9 +69,9 @@ int deffs_opendir(const char *path, struct fuse_file_info *fi)
         return res;
     }
     d->offset = 0;
-    d->entry = NULL;
+    d->entry  = NULL;
 
-    fi->fh = (unsigned long) d;
+    fi->fh = (unsigned long)d;
     return 0;
 }
 
@@ -109,8 +107,7 @@ int deffs_unlink(const char *path)
     return 0;
 }
 
-int deffs_read(const char *path, char *buf, size_t size, off_t offset,
-            struct fuse_file_info *fi)
+int deffs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
     int res;
 
@@ -119,16 +116,16 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset,
     strcpy(nonconst_path, path);
     strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
 
-    if(starts_with(path, shardpoint) == 1 && ends_with(path, ".shard") == 1){
-        (void) path;
-    	res = pread(fi->fh, buf, size, offset);
-    	if (res == -1)
-    		res = -errno;
+    if (starts_with(path, shardpoint) == 1 && ends_with(path, ".shard") == 1) {
+        (void)path;
+        res = pread(fi->fh, buf, size, offset);
+        if (res == -1)
+            res = -errno;
     } else {
         // Open header file
         FILE *header_pointer;
         header_pointer = fopen(nonconst_path, "r");
-        if(header_pointer == NULL){
+        if (header_pointer == NULL) {
             printf("Could not open file %s for decrypting\n", nonconst_path);
             exit(1);
         }
@@ -137,7 +134,7 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset,
         fseek(header_pointer, 0, SEEK_END);
         int header_size = ftell(header_pointer);
         fseek(header_pointer, 0, SEEK_SET);
-        if(header_size <= 0){
+        if (header_size <= 0) {
             printf("Cannot trace corresponding file shard for file %s", nonconst_path);
             exit(1);
         }
@@ -160,7 +157,7 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset,
         shard_pointer = fopen(shard_path, "rw");
 
         // Get shard size
-        fseek (shard_pointer, 0, SEEK_END);
+        fseek(shard_pointer, 0, SEEK_END);
         int shard_size = ftell(shard_pointer);
         fseek(shard_pointer, 0, SEEK_SET);
 
@@ -182,31 +179,30 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset,
         struct EncryptionData *plain = get_plaintext(shard.ciphertext, shard.key);
 
         // Only read the requested data
-        char *sub_buf= malloc(size);
+        char *sub_buf = malloc(size);
         strncpy(sub_buf, plain->plaintext + offset, size);
         strcpy(buf, sub_buf);
 
         res = strlen(buf);
     }
 
-	return res;
+    return res;
 }
 
-int deffs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
-            off_t offset, struct fuse_file_info *fi)
+int deffs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
+                  struct fuse_file_info *fi)
 {
     struct deffs_dirp *d = get_dirp(fi);
-
 
     // Copy path to non-constant copy for fopen
     char nonconst_path[strlen(storepoint) + strlen(path) + 1];
     strcpy(nonconst_path, path);
     strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
 
-    (void) path;
+    (void)path;
     if (offset != d->offset) {
         seekdir(d->dp, offset);
-        d->entry = NULL;
+        d->entry  = NULL;
         d->offset = offset;
     }
 
@@ -221,21 +217,21 @@ int deffs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
         }
 
         memset(&st, 0, sizeof(st));
-        st.st_ino = d->entry->d_ino;
+        st.st_ino  = d->entry->d_ino;
         st.st_mode = d->entry->d_type << 12;
-        nextoff = telldir(d->dp);
+        nextoff    = telldir(d->dp);
         if (filler(buf, d->entry->d_name, &st, nextoff))
             break;
 
-        d->entry = NULL;
+        d->entry  = NULL;
         d->offset = nextoff;
     }
 
     return 0;
 }
 
-int deffs_write(const char *path, const char *buf, size_t size,
-            off_t offset, struct fuse_file_info *fi)
+int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
+                struct fuse_file_info *fi)
 {
     int res;
     // Copy path to non-constant copy for fopen
@@ -249,7 +245,7 @@ int deffs_write(const char *path, const char *buf, size_t size,
     // Open header file
     FILE *header_pointer;
     header_pointer = fopen(nonconst_path, "rw");
-    if(header_pointer == NULL){
+    if (header_pointer == NULL) {
         printf("Could not open file %s for encrypting, %s\n", nonconst_path, path);
         exit(1);
     }
@@ -276,7 +272,7 @@ int deffs_write(const char *path, const char *buf, size_t size,
         shard_pointer = fopen(shard_path, "rw");
 
         // Get shard size
-        fseek (shard_pointer, 0, SEEK_END);
+        fseek(shard_pointer, 0, SEEK_END);
         int shard_size = ftell(shard_pointer);
         fseek(shard_pointer, 0, SEEK_SET);
 
@@ -335,7 +331,7 @@ int deffs_write(const char *path, const char *buf, size_t size,
 
         // Write metadata
         int n = fwrite(encrypted->key, 1, sizeof(encrypted->key), shard_pointer);
-        if (n != SHARD_KEY_LEN){
+        if (n != SHARD_KEY_LEN) {
             printf("Error writing key metadata\n");
             exit(1);
         }
@@ -353,7 +349,7 @@ int deffs_write(const char *path, const char *buf, size_t size,
         res = -errno;
 
     FLAG_OPENED_EMPTY_FILE = 0;
-    FLAG_TRUNCATE = -1;
+    FLAG_TRUNCATE          = -1;
 
     fclose(header_pointer);
 
@@ -362,22 +358,21 @@ int deffs_write(const char *path, const char *buf, size_t size,
     return strlen(buf);
 }
 
-int deffs_write_buf(const char *path, struct fuse_bufvec *buf,
-            off_t offset, struct fuse_file_info *fi)
+int deffs_write_buf(const char *path, struct fuse_bufvec *buf, off_t offset,
+                    struct fuse_file_info *fi)
 {
     struct fuse_bufvec dst = FUSE_BUFVEC_INIT(fuse_buf_size(buf));
-
 
     // Copy path to non-constant copy for fopen
     char nonconst_path[strlen(storepoint) + strlen(path) + 1];
     strcpy(nonconst_path, path);
     strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
 
-    (void) path;
+    (void)path;
 
     dst.buf[0].flags = FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK;
-    dst.buf[0].fd = fi->fh;
-    dst.buf[0].pos = offset;
+    dst.buf[0].fd    = fi->fh;
+    dst.buf[0].pos   = offset;
 
     return fuse_buf_copy(&dst, buf, FUSE_BUF_SPLICE_NONBLOCK);
 }
@@ -391,7 +386,7 @@ int deffs_flush(const char *path, struct fuse_file_info *fi)
     strcpy(nonconst_path, path);
     strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
 
-    (void) path;
+    (void)path;
     /* This is called from every close on an open file, so call the
        close on the underlying filesystem.    But since flush may be
        called multiple times for an open file, this must not really
@@ -450,11 +445,10 @@ int deffs_truncate(const char *path, off_t size)
     */
 }
 
-int deffs_ftruncate(const char *path, off_t size,
-            struct fuse_file_info *fi)
+int deffs_ftruncate(const char *path, off_t size, struct fuse_file_info *fi)
 {
     int res;
-    (void) path;
+    (void)path;
 
     res = ftruncate(fi->fh, size);
     if (res == -1)
@@ -489,7 +483,7 @@ int deffs_release(const char *path, struct fuse_file_info *fi)
     strcpy(nonconst_path, path);
     strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
 
-    (void) path;
+    (void)path;
     close(fi->fh);
 
     return 0;
@@ -497,14 +491,14 @@ int deffs_release(const char *path, struct fuse_file_info *fi)
 
 int deffs_releasedir(const char *path, struct fuse_file_info *fi)
 {
-   struct deffs_dirp *d = get_dirp(fi);
+    struct deffs_dirp *d = get_dirp(fi);
 
     // Copy path to non-constant copy for fopen
     char nonconst_path[strlen(storepoint) + strlen(path) + 1];
     strcpy(nonconst_path, path);
     strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
-   (void) path;
-   closedir(d->dp);
-   free(d);
-   return 0;
+    (void)path;
+    closedir(d->dp);
+    free(d);
+    return 0;
 }

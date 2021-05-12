@@ -21,14 +21,13 @@ int deffs_getattr(const char *path, struct stat *stbuf)
     return 0;
 }
 
-int deffs_fgetattr(const char *path, struct stat *stbuf,
-            struct fuse_file_info *fi)
+int deffs_fgetattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi)
 {
     int res;
 
     path = deffs_path_prepend(path, storepoint);
 
-    (void) path;
+    (void)path;
 
     res = fstat(fi->fh, stbuf);
     if (res == -1)
@@ -40,11 +39,11 @@ int deffs_fgetattr(const char *path, struct stat *stbuf,
 #ifdef HAVE_SETXATTR
 /* xattr operations are optional and can safely be left unimplemented */
 #ifdef __APPLE__
-static int deffs_setxattr(const char *path, const char *name, const char *value,
-            size_t size, int flags, uint32_t position)
+static int deffs_setxattr(const char *path, const char *name, const char *value, size_t size,
+                          int flags, uint32_t position)
 #else
-static int deffs_setxattr(const char *path, const char *name, const char *value,
-            size_t size, int flags)
+static int deffs_setxattr(const char *path, const char *name, const char *value, size_t size,
+                          int flags)
 #endif
 {
 #ifdef __APPLE__
@@ -69,11 +68,10 @@ static int deffs_setxattr(const char *path, const char *name, const char *value,
 }
 
 #ifdef __APPLE__
-static int deffs_getxattr(const char *path, const char *name, char *value,
-            size_t size, uint32_t position)
+static int deffs_getxattr(const char *path, const char *name, char *value, size_t size,
+                          uint32_t position)
 #else
-static int deffs_getxattr(const char *path, const char *name, char *value,
-            size_t size)
+static int deffs_getxattr(const char *path, const char *name, char *value, size_t size)
 #endif
 {
 #ifdef __APPLE__
