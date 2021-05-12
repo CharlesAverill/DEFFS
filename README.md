@@ -50,6 +50,6 @@ cat test/helloworld.txt
 
 ## Progress
 - [ ] Distributed
-- [ ] Encrypted
+- [x] Encrypted
 - [ ] Fractured
 - [x] File System
