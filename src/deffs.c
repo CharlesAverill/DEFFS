@@ -121,23 +121,23 @@ static struct argp argp = { options, parse_opt, args_doc, doc, 0, 0, 0 };
 
 int main(int argc, char *argv[])
 {
-    // Argument parsing
-    struct arguments arguments;
+	// Argument parsing
+	struct arguments arguments;
 
-    argp_parse(&argp, argc, argv, 0, 0, &arguments);
+	argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
-    // Setup mount, store, and shardpoints
-    mountpoint = arguments.points[0];
-    storepoint = arguments.points[1];
+	// Setup mount, store, and shardpoints
+	mountpoint = arguments.points[0];
+	storepoint = arguments.points[1];
 
-    shardpoint = malloc(strlen(storepoint) + strlen("/.shards/") + 1);
-    strcpy(shardpoint, storepoint);
-    strcat(shardpoint, "/.shards/");
-    shardpoint[strlen(storepoint) + strlen("/.shards/") + 1] = '\0';
+	shardpoint = malloc(strlen(storepoint) + strlen("/.shards/") + 1);
+	strcpy(shardpoint, storepoint);
+	strcat(shardpoint, "/.shards/");
+	shardpoint[strlen(storepoint) + strlen("/.shards/") + 1] = '\0';
 
-    // Start FUSE
-    char *static_argv[] = {argv[0], mountpoint, "-o", "allow_other", "-d", "-s", "-f"};
-    int static_argc = sizeof(static_argv) / sizeof(static_argv[0]);
+	// Start FUSE
+	char *static_argv[] = {argv[0], mountpoint, "-o", "allow_other", "-d", "-s", "-f"};
+	int static_argc = sizeof(static_argv) / sizeof(static_argv[0]);
 
-    return fuse_main(static_argc, static_argv, &deffs_oper, NULL);
+	return fuse_main(static_argc, static_argv, &deffs_oper, NULL);
 }
