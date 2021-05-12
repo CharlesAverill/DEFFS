@@ -180,8 +180,11 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset,
 
         // Decrypt shard
         struct EncryptionData *plain = get_plaintext(shard.ciphertext, shard.key);
-        strcpy(buf, plain->plaintext);
-        buf[strlen(plain->plaintext)] = '\0';
+
+        // Only read the requested data
+        char *sub_buf= malloc(size);
+        strncpy(sub_buf, plain->plaintext + offset, size);
+        strcpy(buf, sub_buf);
 
         res = strlen(buf);
     }
