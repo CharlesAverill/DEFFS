@@ -29,66 +29,65 @@ char *shardpoint;
 
 static struct fuse_operations deffs_oper = {
     .init           = deffs_init,
-    .destroy    = NULL, //deffs_destroy,
-    .getattr    = deffs_getattr,
-    .fgetattr    = deffs_fgetattr,
+    .destroy        = NULL, //deffs_destroy,
+    .getattr        = deffs_getattr,
+    .fgetattr       = deffs_fgetattr,
 #ifndef __APPLE__
-    .access        = deffs_access,
+    .access         = deffs_access,
 #endif
-    .readlink    = NULL, //deffs_readlink,
-    .opendir    = deffs_opendir,
-    .readdir    = deffs_readdir,
-    .releasedir    = deffs_releasedir,
-    .mknod        = NULL, //deffs_mknod,
-    .mkdir        = deffs_mkdir,
-    .symlink    = NULL, //deffs_symlink,
-    .unlink        = deffs_unlink,
-    .rmdir        = NULL, //deffs_rmdir,
-    .rename        = NULL, //deffs_rename,
-    .link        = NULL, //deffs_link,
-    .chmod        = deffs_chmod,
-    .chown        = deffs_chown,
-    .truncate    = deffs_truncate,
-    .ftruncate    = deffs_ftruncate,
+    .readlink       = NULL, //deffs_readlink,
+    .opendir        = deffs_opendir,
+    .readdir        = deffs_readdir,
+    .releasedir     = deffs_releasedir,
+    .mknod          = NULL, //deffs_mknod,
+    .mkdir          = deffs_mkdir,
+    .symlink        = NULL, //deffs_symlink,
+    .unlink         = deffs_unlink,
+    .rmdir          = NULL, //deffs_rmdir,
+    .rename         = NULL, //deffs_rename,
+    .link           = NULL, //deffs_link,
+    .chmod          = deffs_chmod,
+    .chown          = deffs_chown,
+    .truncate       = deffs_truncate,
+    .ftruncate      = deffs_ftruncate,
 #ifdef HAVE_UTIMENSAT
-    .utimens    = deffs_utimens,
+    .utimens        = deffs_utimens,
 #endif
-    .create        = deffs_create,
-    .open        = deffs_open,
-    .read        = deffs_read,
-    .read_buf    = NULL, //deffs_read_buf,
-    .write        = deffs_write,
-    .write_buf    = NULL, //deffs_write_buf, // This one could be implemented but it's different enough from write that I don't want to yet
-    .statfs        = deffs_statfs,
-    .flush        = deffs_flush,
-    .release    = deffs_release,
-    .fsync        = NULL, //deffs_fsync,
+    .create         = deffs_create,
+    .open           = deffs_open,
+    .read           = deffs_read,
+    .read_buf       = NULL, //deffs_read_buf,
+    .write          = deffs_write,
+    .write_buf      = NULL, //deffs_write_buf, // This one could be implemented but it's different enough from write that I don't want to yet
+    .statfs         = deffs_statfs,
+    .flush          = deffs_flush,
+    .release        = deffs_release,
+    .fsync          = NULL, //deffs_fsync,
 #if defined(HAVE_POSIX_FALLOCATE) || defined(__APPLE__)
-    .fallocate    = deffs_fallocate,
+    .fallocate      = deffs_fallocate,
 #endif
 #ifdef HAVE_SETXATTR
-    .setxattr    = deffs_setxattr,
-    .getxattr    = deffs_getxattr,
-    .listxattr    = deffs_listxattr,
+    .setxattr       = deffs_setxattr,
+    .getxattr       = deffs_getxattr,
+    .listxattr      = deffs_listxattr,
     .removexattr    = deffs_removexattr,
 #endif
 #ifndef __APPLE__
-    .lock        = NULL, //deffs_lock,
-    .flock        = NULL, //deffs_flock,
+    .lock           = NULL, //deffs_lock,
+    .flock          = NULL, //deffs_flock,
 #endif
 #ifdef __APPLE__
-    .setvolname    = NULL, //deffs_setvolname,
-    .exchange    = NULL, //deffs_exchange,
-    .getxtimes    = NULL, //deffs_getxtimes,
+    .setvolname     = NULL, //deffs_setvolname,
+    .exchange       = NULL, //deffs_exchange,
+    .getxtimes      = NULL, //deffs_getxtimes,
     .setbkuptime    = NULL, //deffs_setbkuptime,
-    .setchgtime    = NULL, //deffs_setchgtime,
-    .setcrtime    = NULL, //deffs_setcrtime,
-    .chflags    = NULL, //deffs_chflags,
-    .setattr_x    = NULL, //deffs_setattr_x,
-    .fsetattr_x    = NULL, //deffs_fsetattr_x,
+    .setchgtime     = NULL, //deffs_setchgtime,
+    .setcrtime      = NULL, //deffs_setcrtime,
+    .chflags        = NULL, //deffs_chflags,
+    .setattr_x      = NULL, //deffs_setattr_x,
+    .fsetattr_x     = NULL, //deffs_fsetattr_x,
 #endif
-
-    .flag_nullpath_ok = 1,
+    .flag_nullpath_ok   = 1,
 #if HAVE_UTIMENSAT
     .flag_utime_omit_ok = 1,
 #endif
@@ -100,7 +99,6 @@ void *deffs_init(struct fuse_conn_info *conn)
     FUSE_ENABLE_SETVOLNAME(conn);
     FUSE_ENABLE_XTIMES(conn);
 #endif
-
     // Create the shardpoint directory
     if(mkdir_if_not_exists(shardpoint, 0700) != 0){
         printf("%s", "Shards directory detected. When mounting DEFFS, use a fresh mountpoint and storepoint");
@@ -135,7 +133,7 @@ int main(int argc, char *argv[])
     shardpoint = malloc(strlen(storepoint) + strlen("/.shards/") + 1);
     strcpy(shardpoint, storepoint);
     strcat(shardpoint, "/.shards/");
-	shardpoint[strlen(storepoint) + strlen("/.shards/") + 1] = '\0';
+    shardpoint[strlen(storepoint) + strlen("/.shards/") + 1] = '\0';
 
     // Start FUSE
     char *static_argv[] = {argv[0], mountpoint, "-o", "allow_other", "-d", "-s", "-f"};
