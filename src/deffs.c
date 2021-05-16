@@ -112,10 +112,15 @@ void *deffs_init(struct fuse_conn_info *conn)
 
 const char *argp_program_version     = "DEFFS 0.0.2";
 const char *argp_program_bug_address = "charles.averill@utdallas.edu";
-const char doc[]                     = "Distributed, Encrypted, Fractured File System";
+static char doc[]                    = "Distributed, Encrypted, Fractured File System";
 static char args_doc[]               = "MOUNTPOINT STOREPOINT";
 
-static struct argp_option options[] = {{0}};
+static struct argp_option options[] = {
+    {"verbose", 'v', 0, 0, "Produce verbose output"},
+    {"quiet", 'q', 0, 0, "Don't produce any output"},
+    {"silent", 's', 0, OPTION_ALIAS},
+    {"output", 'o', "FILE", 0, "Output to FILE instead of standard output"},
+    {0}};
 
 static struct argp argp = {options, parse_opt, args_doc, doc, 0, 0, 0};
 
