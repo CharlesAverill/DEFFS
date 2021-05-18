@@ -11,6 +11,7 @@ machine.
 - Build
 
 ```bash
+cmake .
 mkdir bin
 cmake --build ./ --target DEFFS -- -j 6
 ```
