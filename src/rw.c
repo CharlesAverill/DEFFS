@@ -256,7 +256,6 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
     fseek(header_pointer, 0, SEEK_SET);
 
     if (FLAG_OPENED_EMPTY_FILE == 0) { // Not empty
-        printf("Nonempty file\n");
         // Read hash from header file
         char hash_buf[SHARD_FN_LEN + 1];
         fread(hash_buf, SHARD_FN_LEN, 1, header_pointer);
@@ -271,8 +270,6 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
         // Open shard file
         FILE *shard_pointer;
         shard_pointer = fopen(shard_path, "rw");
-
-        printf("Opened shard file\n");
 
         // Get shard size
         fseek(shard_pointer, 0, SEEK_END);
@@ -315,11 +312,8 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
         res = fwrite(to_write, sizeof(to_write), 1, shard_pointer);
         fclose(shard_pointer);
     } else { // Empty
-        printf("Emtpy file\n");
         // Encrypt buffer
         struct EncryptionData *encrypted = get_ciphertext(strdup(buf));
-
-        printf("Got cyphertext\n");
 
         // Generate hash
         unsigned char *hash_buf = malloc(65);
@@ -341,8 +335,6 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
             printf("Error writing key metadata\n");
             exit(1);
         }
-
-        printf("Wrote metadata\n");
 
         // Write encrypted data to shard
         res = fprintf(shard_pointer, "%s", encrypted->ciphertext);

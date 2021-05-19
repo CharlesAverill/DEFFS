@@ -1,3 +1,0 @@
-/home/pi/Desktop/DEFFS/CMakeFiles/rebuild_cache.dir
-/home/pi/Desktop/DEFFS/CMakeFiles/DEFFS.dir
-/home/pi/Desktop/DEFFS/CMakeFiles/edit_cache.dir
