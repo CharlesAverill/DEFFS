@@ -1,3 +1,23 @@
+/*
+* FILENAME: shamir.c
+*
+* DESCRIPTION: An implementation of Shamir's Secret Sharing Scheme
+*              TEMPORARILY INSECURE DUE TO LOW PRIME MODULO OPERATIONS
+*
+* USAGE: int secret = 12345;
+*        int num_shards = 5;
+*        int num_required = 3;
+*        struct point *points = malloc(sizeof(struct point));
+*
+*        encode_fragments(secret, num_shards, num_required, points);
+* 
+*        ...
+*
+*        int decoded_secret = decode_fragments(points, num_required);
+*
+* AUTHOR: Charles Averill
+*/
+
 #include "shamir.h"
 
 typedef struct {
@@ -68,26 +88,38 @@ void encode_fragments(int secret, int n_fragments, int n_required, struct point 
             getrandom(&tmp_rand, sizeof(unsigned int), GRND_NONBLOCK);
             p = tmp_rand % output[i] = charset[tmp_rand % (sizeof(charset) - 1)];
         }
+        
+        unsigned int tmp_rand;
+        getrandom(&tmp_rand, sizeof(unsigned int), GRND_NONBLOCK);
+        p = (tmp_rand % 997);
 
-        // To keep the random values
-        // in range not too high
-        // we are taking mod with a
-        // prime number around 1000
-        p = (rand() % 997);
-
-        // This is to ensure we did not
-        // create a polynomial consisting
-        // of zeroes.
-        poly[j] = p;
+        polynomial[j] = p;
     }
 
-    // Generating N points from the
-    // polynomial we created
-    for (int j = 1; j <= N; ++j) {
+    for (int j = 1; j <= n_fragments; ++j) {
         int x = j;
-        int y = calculate_Y(x, poly);
+        int y = get_y(x, polynomial);
 
-        // Points created on sharing
         points[j - 1] = {x, y};
     }
+}
+
+int decode_fragments(struct point *points, int num_points)
+{
+  
+    fraction ans(0, 1);
+  
+    for (int i = 0; i < num_points; ++i) {
+  
+        fraction l(y[i], 1);
+        for (int j = 0; j < num_points; ++j) {
+            if (i != j) {
+                fraction temp(-(points[j]->x), (points[i]->x) - (points[j]->x));
+                l = l * temp;
+            }
+        }
+        ans = ans + l;
+    }
+  
+    return ans.numerator;
 }
