@@ -72,23 +72,25 @@ struct EncryptionData *get_ciphertext_with_key(char *plaintext, unsigned char ke
 
     AES_set_encrypt_key((const unsigned char *)key, 128, &AES_key);
 
-    // Encrypt plaintext
-    AES_encrypt(plaintext, ciphertext, &AES_key);
-
     // Allocate memory for returned struct
     struct EncryptionData *output = malloc(sizeof(struct EncryptionData));
     if (output == NULL) {
         return NULL;
     }
 
-    // Assign values to returned struct
-    strcpy(output->key, key);
-
+    // Set plaintext before any operations in case of mangling by OpenSSL
     output->plaintext = malloc(strlen(plaintext));
     if (output->plaintext == NULL) {
         free(output);
         return NULL;
     }
+    strcpy(output->plaintext, plaintext);
+
+    // Encrypt plaintext
+    AES_encrypt(plaintext, ciphertext, &AES_key);
+
+    // Assign values to returned struct
+    strcpy(output->key, key);
 
     output->ciphertext = malloc(strlen(ciphertext));
     if (output->ciphertext == NULL) {
@@ -96,7 +98,6 @@ struct EncryptionData *get_ciphertext_with_key(char *plaintext, unsigned char ke
         return NULL;
     }
 
-    strcpy(output->plaintext, plaintext);
     strcpy(output->ciphertext, ciphertext);
 
     return output;

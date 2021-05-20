@@ -116,8 +116,8 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset, struct fu
     strcpy(nonconst_path, path);
     strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
 
-    if (starts_with(path, shardpoint) == 1 && ends_with(path, ".shard") == 1) {
-        (void)path;
+    if (starts_with(nonconst_path, shardpoint) == 1 && ends_with(nonconst_path, ".shard") == 1) {
+        (void)nonconst_path;
         res = pread(fi->fh, buf, size, offset);
         if (res == -1)
             res = -errno;
