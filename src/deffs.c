@@ -22,6 +22,7 @@
 #include "crypto.h"
 #include "perms.h"
 #include "rw.h"
+#include "shamir.h"
 
 char *mountpoint;
 char *storepoint;
@@ -143,6 +144,17 @@ int main(int argc, char *argv[])
     char *static_argv[] = {argv[0], mountpoint, "-o", "allow_other", "-d", "-s", "-f"};
     int static_argc     = sizeof(static_argv) / sizeof(static_argv[0]);
 
+    int secret          = 12345;
+    int num_shards      = 5;
+    int num_required    = 3;
+    struct pair *points = malloc(sizeof(struct pair) * num_shards);
+
+    encode_fragments(secret, num_shards, num_required, points);
+
+    int decoded_secret = decode_fragments(points, num_required);
+
+    printf("Decoded: %d\n", decoded_secret);
+
     // Start FUSE
-    return fuse_main(static_argc, static_argv, &deffs_oper, NULL);
+    //return fuse_main(static_argc, static_argv, &deffs_oper, NULL);
 }
