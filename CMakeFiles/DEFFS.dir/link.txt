@@ -1,0 +1,1 @@
+/usr/bin/cc    CMakeFiles/DEFFS.dir/src/deffs.c.o CMakeFiles/DEFFS.dir/src/attr.c.o CMakeFiles/DEFFS.dir/src/utils.c.o CMakeFiles/DEFFS.dir/src/arguments.c.o CMakeFiles/DEFFS.dir/src/rw.c.o CMakeFiles/DEFFS.dir/src/crypto.c.o CMakeFiles/DEFFS.dir/src/perms.c.o CMakeFiles/DEFFS.dir/src/shamir.c.o  -o bin/DEFFS  /usr/lib/arm-linux-gnueabihf/libfuse.so -lcrypto 

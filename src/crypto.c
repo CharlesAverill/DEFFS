@@ -22,7 +22,9 @@ struct EncryptionData *get_ciphertext(char *plaintext)
     // Initialize cipher variables
     AES_KEY AES_key;
     unsigned char key[17];
-    unsigned char ciphertext[(strlen(plaintext) + 127) / 128];
+    unsigned char ciphertext[16 * ((strlen(plaintext) + 15) / 16)];
+
+    printf("Plaintext: %s Len: %zu\n", plaintext, strlen(plaintext));
 
     // Allocate memory for returned struct
     struct EncryptionData *output = malloc(sizeof(struct EncryptionData));
@@ -63,7 +65,7 @@ struct EncryptionData *get_ciphertext_with_key(char *plaintext, unsigned char ke
 {
     // Initialize cipher variables
     AES_KEY AES_key;
-    unsigned char ciphertext[(strlen(plaintext) + 127) / 128];
+    unsigned char ciphertext[16 * ((strlen(plaintext) + 15) / 16)];
 
     key[0] = 1;
     for (int i = 1; i <= 15; i++) {
