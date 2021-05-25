@@ -131,14 +131,7 @@ struct EncryptionData *get_plaintext(char ciphertext[], unsigned char key[16])
         return NULL;
     }
 
-    output->ciphertext = malloc(strlen(ciphertext));
-    if (output->ciphertext == NULL) {
-        free(output);
-        return NULL;
-    }
-
     strcpy(output->plaintext, plaintext);
-    strcpy(output->ciphertext, ciphertext);
 
     return output;
 }

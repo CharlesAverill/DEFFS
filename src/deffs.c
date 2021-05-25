@@ -1,5 +1,5 @@
 /*
-* FILENAME: deffs.h
+* FILENAME: deffs.c
 *
 * DESCRIPTION: Main DEFFS logic, including binding DEFFS methods to FUSE
 *                callbacks. Compiles to executable that mounts DEFFS filesystem.
@@ -144,17 +144,21 @@ int main(int argc, char *argv[])
     char *static_argv[] = {argv[0], mountpoint, "-o", "allow_other", "-d", "-s", "-f"};
     int static_argc     = sizeof(static_argv) / sizeof(static_argv[0]);
 
-    int secret          = 12345;
-    int num_shards      = 5;
-    int num_required    = 3;
-    struct pair *points = malloc(sizeof(struct pair) * num_shards);
+    unsigned long long int secret = 65;
+    int num_shards                = 4;
+    int num_required              = 3;
 
-    encode_fragments(secret, num_shards, num_required, points);
+    struct pair shares[num_shards];
+    get_shares(secret, num_shards, num_required, shares);
 
-    int decoded_secret = decode_fragments(points, num_required);
+    for (int i = 0; i < num_shards; i++) {
+        printf("X: %lld, Y: %lld\n", shares[i].a, shares[i].b);
+    }
 
-    printf("Decoded: %d\n", decoded_secret);
+    unsigned long long int recovered_secret = get_secret(shares, num_shards);
+
+    printf("Secret: %lld\nRecovered Secret: %lld\n", secret, recovered_secret);
 
     // Start FUSE
-    //return fuse_main(static_argc, static_argv, &deffs_oper, NULL);
+    return fuse_main(static_argc, static_argv, &deffs_oper, NULL);
 }
