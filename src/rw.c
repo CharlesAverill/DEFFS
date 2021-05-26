@@ -50,6 +50,18 @@ int deffs_open(const char *path, struct fuse_file_info *fi)
     return 0;
 }
 
+int deffs_readlink(const char *path, char *buf, size_t size)
+{
+    int res;
+
+    res = readlink(path, buf, size - 1);
+    if (res == -1)
+        return -errno;
+
+    buf[res] = '\0';
+    return 0;
+}
+
 int deffs_opendir(const char *path, struct fuse_file_info *fi)
 {
     int res;
@@ -72,6 +84,25 @@ int deffs_opendir(const char *path, struct fuse_file_info *fi)
     d->entry  = NULL;
 
     fi->fh = (unsigned long)d;
+    return 0;
+}
+
+int deffs_mknod(const char *path, mode_t mode, dev_t rdev)
+{
+    int res;
+
+    // Copy path to non-constant copy for fopen
+    char nonconst_path[strlen(storepoint) + strlen(path) + 1];
+    strcpy(nonconst_path, path);
+    strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
+
+    if (S_ISFIFO(mode))
+        res = mkfifo(path, mode);
+    else
+        res = mknod(path, mode, rdev);
+    if (res == -1)
+        return -errno;
+
     return 0;
 }
 
@@ -101,6 +132,85 @@ int deffs_unlink(const char *path)
     strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
 
     res = unlink(nonconst_path);
+    if (res == -1)
+        return -errno;
+
+    return 0;
+}
+
+int deffs_rmdir(const char *path)
+{
+    int res;
+
+    // Copy path to non-constant copy for fopen
+    char nonconst_path[strlen(storepoint) + strlen(path) + 1];
+    strcpy(nonconst_path, path);
+    strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
+
+    res = rmdir(path);
+    if (res == -1)
+        return -errno;
+
+    return 0;
+}
+
+int deffs_symlink(const char *from, const char *to)
+{
+    int res;
+
+    // Copy from to non-constant copy for fopen
+    char nonconst_from[strlen(storepoint) + strlen(from) + 1];
+    strcpy(nonconst_from, nonconst_from);
+    strcpy(nonconst_from, deffs_path_prepend(nonconst_from, storepoint));
+
+    // Copy to to non-constant copy for fopen
+    char nonconst_to[strlen(storepoint) + strlen(to) + 1];
+    strcpy(nonconst_to, to);
+    strcpy(nonconst_to, deffs_path_prepend(nonconst_to, storepoint));
+
+    res = symlink(nonconst_from, nonconst_to);
+    if (res == -1)
+        return -errno;
+
+    return 0;
+}
+
+int deffs_rename(const char *from, const char *to)
+{
+    int res;
+
+    // Copy from to non-constant copy for fopen
+    char nonconst_from[strlen(storepoint) + strlen(from) + 1];
+    strcpy(nonconst_from, nonconst_from);
+    strcpy(nonconst_from, deffs_path_prepend(nonconst_from, storepoint));
+
+    // Copy to to non-constant copy for fopen
+    char nonconst_to[strlen(storepoint) + strlen(to) + 1];
+    strcpy(nonconst_to, to);
+    strcpy(nonconst_to, deffs_path_prepend(nonconst_to, storepoint));
+
+    res = rename(nonconst_from, nonconst_to);
+    if (res == -1)
+        return -errno;
+
+    return 0;
+}
+
+int deffs_link(const char *from, const char *to)
+{
+    int res;
+
+    // Copy from to non-constant copy for fopen
+    char nonconst_from[strlen(storepoint) + strlen(from) + 1];
+    strcpy(nonconst_from, nonconst_from);
+    strcpy(nonconst_from, deffs_path_prepend(nonconst_from, storepoint));
+
+    // Copy to to non-constant copy for fopen
+    char nonconst_to[strlen(storepoint) + strlen(to) + 1];
+    strcpy(nonconst_to, to);
+    strcpy(nonconst_to, deffs_path_prepend(nonconst_to, storepoint));
+
+    res = link(nonconst_from, nonconst_to);
     if (res == -1)
         return -errno;
 
@@ -146,15 +256,11 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset, struct fu
 
         fclose(header_pointer);
 
-        printf("Constructing shard\n");
-
         // Construct shard filepath from hash
         char shard_path[strlen(shardpoint) + SHARD_FN_LEN + 7];
         strcpy(shard_path, shardpoint);
         strcat(shard_path, hash_buf);
         strcat(shard_path, ".shard");
-
-        printf("Opening shard\n");
 
         // Open shard file
         FILE *shard_pointer;
@@ -164,8 +270,6 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset, struct fu
         fseek(shard_pointer, 0, SEEK_END);
         int shard_size = ftell(shard_pointer);
         fseek(shard_pointer, 0, SEEK_SET);
-
-        printf("Constructing shard\n");
 
         // Read shard metadata
         char key[SHARD_KEY_LEN];
@@ -195,11 +299,6 @@ int deffs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t off
                   struct fuse_file_info *fi)
 {
     struct deffs_dirp *d = get_dirp(fi);
-
-    // Copy path to non-constant copy for fopen
-    char nonconst_path[strlen(storepoint) + strlen(path) + 1];
-    strcpy(nonconst_path, path);
-    strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
 
     (void)path;
     if (offset != d->offset) {
@@ -365,11 +464,6 @@ int deffs_write_buf(const char *path, struct fuse_bufvec *buf, off_t offset,
 {
     struct fuse_bufvec dst = FUSE_BUFVEC_INIT(fuse_buf_size(buf));
 
-    // Copy path to non-constant copy for fopen
-    char nonconst_path[strlen(storepoint) + strlen(path) + 1];
-    strcpy(nonconst_path, path);
-    strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
-
     (void)path;
 
     dst.buf[0].flags = FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK;
@@ -381,6 +475,7 @@ int deffs_write_buf(const char *path, struct fuse_bufvec *buf, off_t offset,
 
 int deffs_flush(const char *path, struct fuse_file_info *fi)
 {
+    printf("Flushing\n");
     int res;
 
     (void)path;

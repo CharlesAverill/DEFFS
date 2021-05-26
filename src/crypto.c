@@ -24,8 +24,6 @@ struct EncryptionData *get_ciphertext(char *plaintext)
     unsigned char key[17];
     unsigned char ciphertext[16 * ((strlen(plaintext) + 15) / 16)];
 
-    printf("Plaintext: %s Len: %zu\n", plaintext, strlen(plaintext));
-
     // Allocate memory for returned struct
     struct EncryptionData *output = malloc(sizeof(struct EncryptionData));
     if (output == NULL) {
