@@ -41,6 +41,7 @@ struct EncryptionData *get_ciphertext(char *plaintext)
     // Fill the key with random values
     random_string(key, 17);
 
+    printf("Key: %s\n", key);
     AES_set_encrypt_key((const unsigned char *)key, 128, &AES_key);
 
     // Encrypt plaintext
@@ -59,18 +60,11 @@ struct EncryptionData *get_ciphertext(char *plaintext)
     return output;
 }
 
-struct EncryptionData *get_ciphertext_with_key(char *plaintext, unsigned char key[16])
+struct EncryptionData *get_ciphertext_with_key(char *plaintext, unsigned char key[17])
 {
     // Initialize cipher variables
     AES_KEY AES_key;
     unsigned char ciphertext[16 * ((strlen(plaintext) + 15) / 16)];
-
-    key[0] = 1;
-    for (int i = 1; i <= 15; i++) {
-        key[i] = 0;
-    }
-
-    AES_set_encrypt_key((const unsigned char *)key, 128, &AES_key);
 
     // Allocate memory for returned struct
     struct EncryptionData *output = malloc(sizeof(struct EncryptionData));
@@ -86,10 +80,12 @@ struct EncryptionData *get_ciphertext_with_key(char *plaintext, unsigned char ke
     }
     strcpy(output->plaintext, plaintext);
 
-    // Encrypt plaintext
-    AES_encrypt(plaintext, ciphertext, &AES_key);
+    AES_set_encrypt_key((const unsigned char *)key, 128, &AES_key);
 
-    // Assign values to returned struct
+    // Encrypt plaintext
+    AES_encrypt("bruh", ciphertext, &AES_key);
+
+    // Assign key and ciphertext to returned struct
     strcpy(output->key, key);
 
     output->ciphertext = malloc(strlen(ciphertext));
@@ -97,7 +93,6 @@ struct EncryptionData *get_ciphertext_with_key(char *plaintext, unsigned char ke
         free(output);
         return NULL;
     }
-
     strcpy(output->ciphertext, ciphertext);
 
     return output;

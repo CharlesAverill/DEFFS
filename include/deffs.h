@@ -26,12 +26,6 @@ struct deffs_dirp {
     off_t offset;
 };
 
-struct s_shard {
-    char hash[SHARD_FN_LEN + 1];
-    char key[SHARD_KEY_LEN];
-    char ciphertext[];
-};
-
 static inline struct deffs_dirp *get_dirp(struct fuse_file_info *fi)
 {
     return (struct deffs_dirp *) (uintptr_t) fi->fh;
