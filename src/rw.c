@@ -424,7 +424,8 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
 
         // Modify data
         if (offset == 0) {
-            plaintext_buf = buf;
+            strcpy(plaintext_buf, buf);
+            plaintext_buf[strlen(buf)] = '\0';
         } else {
             if (offset + strlen(buf) > strlen(plaintext_buf)) {
                 int len       = offset + strlen(buf) - strlen(plaintext_buf);
