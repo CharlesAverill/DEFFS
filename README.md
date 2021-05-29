@@ -34,6 +34,10 @@ Right now, DEFFS can be used like a typical EXT4 filesystem. It will store
 encrypted data shards in `<storepoint>/.shards/`, so modifying files in that
 folder or the folder itself will break DEFFS.
 
+This filesystem's encryption is based on the AES_encrypt method, meaning:
+- It is NOT (yet) resistant to attackers
+- Making files with unencrypted content longer than 15 characters is undefined (soon to be fixed)
+
 Currently, DEFFS only encrypts files when the `write` syscall is called. Soon,
 `write_buf` will be supported as well. Files are decrypted upon `read`.
 
