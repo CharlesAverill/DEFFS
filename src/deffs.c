@@ -1,5 +1,5 @@
 /*
-* FILENAME: deffs.h
+* FILENAME: deffs.c
 *
 * DESCRIPTION: Main DEFFS logic, including binding DEFFS methods to FUSE
 *                callbacks. Compiles to executable that mounts DEFFS filesystem.
@@ -22,6 +22,7 @@
 #include "crypto.h"
 #include "perms.h"
 #include "rw.h"
+#include "shamir.h"
 
 char *mountpoint;
 char *storepoint;
@@ -35,17 +36,17 @@ static struct fuse_operations deffs_oper = {
 #ifndef __APPLE__
     .access = deffs_access,
 #endif
-    .readlink   = NULL, //deffs_readlink,
+    .readlink   = deffs_readlink,
     .opendir    = deffs_opendir,
     .readdir    = deffs_readdir,
     .releasedir = deffs_releasedir,
     .mknod      = NULL, //deffs_mknod,
     .mkdir      = deffs_mkdir,
-    .symlink    = NULL, //deffs_symlink,
+    .symlink    = deffs_symlink,
     .unlink     = deffs_unlink,
-    .rmdir      = NULL, //deffs_rmdir,
-    .rename     = NULL, //deffs_rename,
-    .link       = NULL, //deffs_link,
+    .rmdir      = deffs_rmdir,
+    .rename     = deffs_rename,
+    .link       = deffs_link,
     .chmod      = deffs_chmod,
     .chown      = deffs_chown,
     .truncate   = deffs_truncate,
@@ -142,6 +143,21 @@ int main(int argc, char *argv[])
 
     char *static_argv[] = {argv[0], mountpoint, "-o", "allow_other", "-d", "-s", "-f"};
     int static_argc     = sizeof(static_argv) / sizeof(static_argv[0]);
+
+    unsigned long long int secret = 65;
+    int num_shards                = 4;
+    int num_required              = 3;
+
+    struct pair shares[num_shards];
+    get_shares(secret, num_shards, num_required, shares);
+
+    for (int i = 0; i < num_shards; i++) {
+        printf("X: %lld, Y: %lld\n", shares[i].a, shares[i].b);
+    }
+
+    unsigned long long int recovered_secret = get_secret(shares, num_shards);
+
+    printf("Secret: %lld\nRecovered Secret: %lld\n", secret, recovered_secret);
 
     // Start FUSE
     return fuse_main(static_argc, static_argv, &deffs_oper, NULL);
