@@ -29,6 +29,8 @@ char *mountpoint;
 char *storepoint;
 char *shardpoint;
 
+int n_machines;
+
 static struct fuse_operations deffs_oper = {
     .init     = deffs_init,
     .destroy  = NULL, //deffs_destroy,
@@ -112,17 +114,13 @@ void *deffs_init(struct fuse_conn_info *conn)
     return NULL;
 }
 
-const char *argp_program_version     = "DEFFS 0.0.2";
+const char *argp_program_version     = "DEFFS 0.0.3";
 const char *argp_program_bug_address = "charles.averill@utdallas.edu";
 static char doc[]                    = "Distributed, Encrypted, Fractured File System";
 static char args_doc[]               = "MOUNTPOINT STOREPOINT";
 
 static struct argp_option options[] = {
-    {"verbose", 'v', 0, 0, "Produce verbose output"},
-    {"quiet", 'q', 0, 0, "Don't produce any output"},
-    {"silent", 's', 0, OPTION_ALIAS},
-    {"output", 'o', "FILE", 0, "Output to FILE instead of standard output"},
-    {0}};
+    {"n_machines", 'n', "INTEGER", 0, "Number of machines to interact with, default is 1"}, {0}};
 
 static struct argp argp = {options, parse_opt, args_doc, doc, 0, 0, 0};
 
@@ -130,6 +128,7 @@ int main(int argc, char *argv[])
 {
     // Argument parsing
     struct arguments arguments;
+    arguments.n_machines = 1;
 
     argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
@@ -145,22 +144,29 @@ int main(int argc, char *argv[])
     char *static_argv[] = {argv[0], mountpoint, "-o", "allow_other", "-d", "-s", "-f"};
     int static_argc     = sizeof(static_argv) / sizeof(static_argv[0]);
 
+    // Setup machines
+    n_machines = arguments.n_machines;
+
+    printf("Searching for %d machines\n", n_machines);
+
+    /*
     char *secret     = "This is the secret.";
     int num_shards   = 4;
     int num_required = 3;
 
-    /*
     char *shares = generate_share_strings(secret, num_shards, num_required);
     fprintf(stdout, "%s", shares);
     free(shares);
     */
 
+    /*
     char *shards[num_shards];
     split_into_shards(secret, shards, num_shards);
     for (int i = 0; i < num_shards; i++) {
         printf("Shard %d: %s\n", i, shards[i]);
     }
+    */
 
     // Start FUSE
-    //return fuse_main(static_argc, static_argv, &deffs_oper, NULL);
+    return fuse_main(static_argc, static_argv, &deffs_oper, NULL);
 }

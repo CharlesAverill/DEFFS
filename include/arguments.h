@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 struct arguments {
+    int n_machines;
     char *points[2];
 };
 

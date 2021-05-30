@@ -17,6 +17,8 @@ extern char *mountpoint;
 extern char *storepoint;
 extern char *shardpoint;
 
+extern int n_machines;
+
 #define SHARD_FN_LEN 64
 #define SHARD_KEY_LEN 17
 
