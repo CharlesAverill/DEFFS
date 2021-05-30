@@ -149,9 +149,17 @@ int main(int argc, char *argv[])
     int num_shards   = 4;
     int num_required = 3;
 
+    /*
     char *shares = generate_share_strings(secret, num_shards, num_required);
     fprintf(stdout, "%s", shares);
     free(shares);
+    */
+
+    char *shards[num_shards];
+    split_into_shards(secret, shards, num_shards);
+    for (int i = 0; i < num_shards; i++) {
+        printf("Shard %d: %s\n", i, shards[i]);
+    }
 
     // Start FUSE
     //return fuse_main(static_argc, static_argv, &deffs_oper, NULL);

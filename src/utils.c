@@ -8,6 +8,20 @@
 
 #include "utils.h"
 
+void split_into_shards(char *in, char *out[], int n)
+{
+    // Fill out with n chunks of characters from in
+
+    int shard_len = (strlen(in) / n) + 1;
+    for (int i = 0; i < n; i++) {
+        int offset = shard_len * i;
+        out[i]     = malloc(shard_len);
+        strncpy(out[i], in + offset,
+                offset + shard_len < strlen(in) ? shard_len : strlen(in) - offset);
+        out[i][shard_len] = '\0';
+    }
+}
+
 const char *deffs_path_prepend(const char originalPath[], char to_prepend[])
 {
     // Prepend to_prepend to originalPath
