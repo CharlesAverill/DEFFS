@@ -6,6 +6,7 @@
 
 struct arguments {
     int n_machines;
+    int port;
     char *points[2];
 };
 

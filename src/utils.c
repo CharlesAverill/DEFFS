@@ -11,7 +11,6 @@
 void split_into_shards(char *in, char *out[], int n)
 {
     // Fill out with n chunks of characters from in
-
     int shard_len = (strlen(in) / n) + 1;
     for (int i = 0; i < n; i++) {
         int offset = shard_len * i;

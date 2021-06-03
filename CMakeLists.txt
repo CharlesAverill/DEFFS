@@ -10,9 +10,13 @@ find_package(OpenSSL REQUIRED)
 
 add_compile_options(-D_FILE_OFFSET_BITS=64)
 
-include_directories(${FUSE_INCLUDE_DIR} ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/lib)
+include_directories(${FUSE_INCLUDE_DIR} 
+					${CMAKE_SOURCE_DIR}/include 
+					${CMAKE_SOURCE_DIR}/include/net
+					${CMAKE_SOURCE_DIR}/lib)
 link_libraries(${FUSE_LIBRARIES} crypto bsd)
 
 add_executable(DEFFS 
 			   src/deffs.c src/attr.c src/utils.c src/arguments.c src/rw.c src/crypto.c src/perms.c
+			   src/net/net.c src/net/client.c src/net/server.c
 			   lib/c-sss/d_string.c lib/c-sss/shamir.c lib/c-sss/strtok.c)

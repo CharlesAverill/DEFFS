@@ -72,6 +72,7 @@ int deffs_opendir(const char *path, struct fuse_file_info *fi)
     // Copy path to non-constant copy for fopen
     char nonconst_path[strlen(storepoint) + strlen(path) + 1];
     strcpy(nonconst_path, path);
+    strcpy(nonconst_path, path);
     strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
 
     d->dp = opendir(nonconst_path);
@@ -135,7 +136,7 @@ int deffs_unlink(const char *path)
     FILE *header_pointer;
     header_pointer = fopen(nonconst_path, "r+");
     if (header_pointer == NULL) {
-        printf("Could not open file %s for encrypting, %s\n", nonconst_path, path);
+        fprintf(stderr, "Could not open file %s for encrypting, %s\n", nonconst_path, path);
         exit(1);
     }
 
@@ -261,7 +262,7 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset, struct fu
         FILE *header_pointer;
         header_pointer = fopen(nonconst_path, "r");
         if (header_pointer == NULL) {
-            printf("Could not open file %s for decrypting\n", nonconst_path);
+            fprintf(stderr, "Could not open file %s for decrypting\n", nonconst_path);
             exit(1);
         }
 
@@ -270,7 +271,7 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset, struct fu
         int header_size = ftell(header_pointer);
         fseek(header_pointer, 0, SEEK_SET);
         if (header_size <= 0) {
-            printf("Cannot trace corresponding file shard for file %s", nonconst_path);
+            fprintf(stderr, "Cannot trace corresponding file shard for file %s", nonconst_path);
             exit(1);
         }
 
@@ -289,13 +290,16 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset, struct fu
 
         // Open shard file
         FILE *shard_pointer;
-        shard_pointer = fopen(shard_path, "rw");
+        shard_pointer = fopen(shard_path, "r");
 
+        res = pread(fileno(shard_pointer), buf, size, offset);
+
+        /*
         // Get shard size
         fseek(shard_pointer, 0, SEEK_END);
         int shard_size = ftell(shard_pointer);
         fseek(shard_pointer, 0, SEEK_SET);
-
+        
         // Read shard metadata
         char key[SHARD_KEY_LEN];
         fread(key, SHARD_KEY_LEN, 1, shard_pointer);
@@ -306,15 +310,19 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset, struct fu
 
         fclose(shard_pointer);
 
+        fprintf(stderr, "Ciphertext: %s\nKey: %s\n", ciphertext_buf, key);
+
         // Decrypt shard
         struct EncryptionData *plain = get_plaintext(ciphertext_buf, key);
 
         // Only read the requested data
         char *sub_buf = malloc(size);
         strncpy(sub_buf, plain->plaintext + offset, size);
+
         strcpy(buf, sub_buf);
 
         res = strlen(buf);
+        */
     }
 
     return res;
@@ -371,9 +379,9 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
 
     // Open header file
     FILE *header_pointer;
-    header_pointer = fopen(nonconst_path, "r+");
+    header_pointer = fopen(nonconst_path, "a+");
     if (header_pointer == NULL) {
-        printf("Could not open file %s for encrypting, %s\n", nonconst_path, path);
+        fprintf(stderr, "Could not open file %s for encrypting, %s\n", nonconst_path, path);
         exit(1);
     }
 
@@ -382,10 +390,13 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
     int header_size = ftell(header_pointer);
     fseek(header_pointer, 0, SEEK_SET);
 
-    if (FLAG_OPENED_EMPTY_FILE == 0) { // Not empty
+    if (header_size > 0) { // Not empty
         // Read hash from header file
         char hash_buf[SHARD_FN_LEN];
         fread(hash_buf, SHARD_FN_LEN, 1, header_pointer);
+        hash_buf[SHARD_FN_LEN] = '\0';
+
+        fclose(header_pointer);
 
         // Construct shard filepath from hash
         char shard_path[strlen(shardpoint) + SHARD_FN_LEN + 7];
@@ -395,73 +406,17 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
 
         // Open shard file
         FILE *shard_pointer;
-        shard_pointer = fopen(shard_path, "r+");
+        shard_pointer = fopen(shard_path, "a+");
 
-        // Get shard size
-        fseek(shard_pointer, 0, SEEK_END);
-        int shard_size = ftell(shard_pointer);
-        fseek(shard_pointer, 0, SEEK_SET);
-
-        // Read shard metadata
-        char key_buf[SHARD_KEY_LEN];
-        fread(key_buf, SHARD_KEY_LEN, 1, shard_pointer);
-        key_buf[SHARD_KEY_LEN] = '\0';
-
-        // Read shard data
-        char ciphertext_buf[shard_size - SHARD_KEY_LEN - 1];
-        fread(ciphertext_buf, shard_size - SHARD_KEY_LEN, 1, shard_pointer);
-        ciphertext_buf[shard_size - SHARD_KEY_LEN - 1] = '\0';
-
-        // Erase shard data
-        fseek(shard_pointer, 0, SEEK_SET);
-        fflush(shard_pointer);
-        ftruncate(fileno(shard_pointer), 0);
-
-        // Decrypt shard
-        char *plaintext_buf          = malloc(strlen(ciphertext_buf));
-        struct EncryptionData *plain = get_plaintext(ciphertext_buf, key_buf);
-        strcpy(plaintext_buf, plain->plaintext);
-
-        // Modify data
-        if (offset == 0) {
-            strcpy(plaintext_buf, buf);
-            plaintext_buf[strlen(buf)] = '\0';
-        } else {
-            if (offset + strlen(buf) > strlen(plaintext_buf)) {
-                int len       = offset + strlen(buf) - strlen(plaintext_buf);
-                plaintext_buf = (char *)realloc(plaintext_buf, offset + strlen(buf));
-            }
-            for (int i = offset; i < offset + strlen(buf); i++) {
-                plaintext_buf[i] = buf[i - offset];
-            }
-        }
-
-        // Re-encrypt modified data
-        struct EncryptionData *reencrypted = get_ciphertext(plaintext_buf);
-
-        fseek(shard_pointer, 0, SEEK_END);
-        shard_size = ftell(shard_pointer);
-        fseek(shard_pointer, 0, SEEK_SET);
-
-        // Write metadata
-        int n = fwrite(reencrypted->key, 1, sizeof(reencrypted->key), shard_pointer);
-        if (n != SHARD_KEY_LEN) {
-            printf("Error writing key metadata, %d bytes written, %d expected\n", n, SHARD_KEY_LEN);
-            exit(1);
-        }
-
-        // Write encrypted data to shard
-        int ciphertext_len = 16 * ((strlen(plaintext_buf) + 15) / 16) + 1;
-        n                  = fwrite(reencrypted->ciphertext, 1, ciphertext_len, shard_pointer);
+        pwrite(fileno(shard_pointer), buf, size, offset);
 
         fclose(shard_pointer);
     } else { // Empty
-        // Encrypt buffer
-        struct EncryptionData *encrypted = get_ciphertext(strdup(buf));
+        fclose(header_pointer);
 
         // Generate hash
-        unsigned char *hash_buf = malloc(65);
-        get_sha256_hash(encrypted->ciphertext, hash_buf);
+        unsigned char hash_buf[SHARD_FN_LEN];
+        get_sha256_hash(buf, hash_buf);
 
         // Construct shard filepath from hash
         char shard_path[strlen(shardpoint) + SHARD_FN_LEN + 7];
@@ -473,33 +428,15 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
         FILE *shard_pointer;
         shard_pointer = fopen(shard_path, "w");
 
-        // Write metadata
-        int n = fwrite(encrypted->key, 1, sizeof(encrypted->key), shard_pointer);
-        if (n != SHARD_KEY_LEN) {
-            printf("Error writing key metadata\n");
-            exit(1);
-        }
-
-        // Write encrypted data to shard
-        fprintf(shard_pointer, "%s", encrypted->ciphertext);
-
-        fclose(shard_pointer);
+        fwrite(buf, 1, size, shard_pointer);
 
         // Write hash to buf
         pwrite(fi->fh, hash_buf, strlen(hash_buf), 0);
+
+        fclose(shard_pointer);
     }
 
-    if (res == -1)
-        return -errno;
-
-    FLAG_OPENED_EMPTY_FILE = 0;
-    FLAG_TRUNCATE          = -1;
-
-    fclose(header_pointer);
-
-    // FUSE expects res to be the number of characters written, but DEFFS
-    // writes the ciphertext for the entire file. So just fudge the numbers.
-    return strlen(buf);
+    return size;
 }
 
 int deffs_write_buf(const char *path, struct fuse_bufvec *buf, off_t offset,
@@ -539,25 +476,24 @@ int deffs_truncate(const char *path, off_t size)
 
     FLAG_TRUNCATE = size;
 
-    return size;
-    /*
+    printf("TRUNCATING\n");
 
     // Copy path to non-constant copy for fopen
     char nonconst_path[strlen(storepoint) + strlen(path) + 1];
     strcpy(nonconst_path, path);
     strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
 
-    if(size == 0){
+    if (size == 0) {
         // Open header file
         FILE *header_pointer;
-        header_pointer = fopen(nonconst_path, "rw");
-        if(header_pointer == NULL){
-            printf("Could not open file %s for truncating, %s\n", nonconst_path, path);
+        header_pointer = fopen(nonconst_path, "r+");
+        if (header_pointer == NULL) {
+            fprintf(stderr, "Could not open file %s for truncating, %s\n", nonconst_path, path);
             exit(1);
         }
 
         // Read hash from header file
-        char hash_buf[SHARD_FN_LEN + 1];
+        char hash_buf[SHARD_FN_LEN];
         fread(hash_buf, SHARD_FN_LEN, 1, header_pointer);
         hash_buf[SHARD_FN_LEN] = '\0';
 
@@ -567,16 +503,15 @@ int deffs_truncate(const char *path, off_t size)
         strcat(shard_path, hash_buf);
         strcat(shard_path, ".shard");
 
-        res = truncate(shard_path, size);
+        res = unlink(shard_path);
         if (res == -1)
             return -errno;
     } else {
-        printf("Trying to truncate %s to size %zu", nonconst_path, size);
+        fprintf(stderr, "Trying to truncate %s to size %zu", nonconst_path, size);
         exit(1);
     }
 
     return 0;
-    */
 }
 
 int deffs_ftruncate(const char *path, off_t size, struct fuse_file_info *fi)

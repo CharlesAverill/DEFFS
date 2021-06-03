@@ -11,7 +11,17 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#include "utils.h"
+#include "arguments.h"
+#include "attr.h"
 #include "crypto.h"
+#include "perms.h"
+#include "rw.h"
+
+#include "net/client.h"
+#include "net/server.h"
+
+#include "c-sss/shamir.h"
 
 extern char *mountpoint;
 extern char *storepoint;
@@ -19,14 +29,18 @@ extern char *shardpoint;
 
 extern int n_machines;
 
-#define SHARD_FN_LEN 64
+extern struct connection *host_connection;
+
+#define SHARD_FN_LEN 32
 #define SHARD_KEY_LEN 17
 
-struct deffs_dirp {
+#define DEFAULT_PORT 7560
+
+typedef struct deffs_dirp {
     DIR *dp;
     struct dirent *entry;
     off_t offset;
-};
+} deffs_dirp;
 
 static inline struct deffs_dirp *get_dirp(struct fuse_file_info *fi)
 {

@@ -15,21 +15,14 @@
 #define FUSE_USE_VERSION 29
 
 #include "deffs.h"
-#include "utils.h"
-
-#include "arguments.h"
-#include "attr.h"
-#include "crypto.h"
-#include "perms.h"
-#include "rw.h"
-
-#include "c-sss/shamir.h"
 
 char *mountpoint;
 char *storepoint;
 char *shardpoint;
 
 int n_machines;
+
+struct connection *host_connection;
 
 static struct fuse_operations deffs_oper = {
     .init     = deffs_init,
@@ -111,6 +104,9 @@ void *deffs_init(struct fuse_conn_info *conn)
         exit(1);
     }
 
+    // Testing connections
+    host_connection = sconnect(12345);
+
     return NULL;
 }
 
@@ -120,7 +116,9 @@ static char doc[]                    = "Distributed, Encrypted, Fractured File S
 static char args_doc[]               = "MOUNTPOINT STOREPOINT";
 
 static struct argp_option options[] = {
-    {"n_machines", 'n', "INTEGER", 0, "Number of machines to interact with, default is 1"}, {0}};
+    {"n_machines", 'n', "INTEGER", 0, "Number of machines to interact with, default is 1"},
+    {"port", 'p', "INTEGER", 0, "Port on which DEFFS machines will interact"},
+    {0}};
 
 static struct argp argp = {options, parse_opt, args_doc, doc, 0, 0, 0};
 
@@ -129,6 +127,7 @@ int main(int argc, char *argv[])
     // Argument parsing
     struct arguments arguments;
     arguments.n_machines = 1;
+    arguments.port       = 13035; // Conway's Constant
 
     argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
@@ -148,6 +147,21 @@ int main(int argc, char *argv[])
     n_machines = arguments.n_machines;
 
     printf("Searching for %d machines\n", n_machines);
+    printf("Port: %d\n", arguments.port);
+
+    host_connection = cconnect("169.254.222.50", 12345, 5);
+
+    char rbuf[255] = "Hello my brother!";
+    netwrite(rbuf, 255, host_connection);
+
+    printf("Getting response...\n");
+
+    bzero(rbuf, 255);
+    netread(rbuf, 255, host_connection);
+
+    printf("%s\n", rbuf);
+
+    close_conn(host_connection);
 
     /*
     char *secret     = "This is the secret.";
@@ -168,5 +182,5 @@ int main(int argc, char *argv[])
     */
 
     // Start FUSE
-    return fuse_main(static_argc, static_argv, &deffs_oper, NULL);
+    //return fuse_main(static_argc, static_argv, &deffs_oper, NULL);
 }

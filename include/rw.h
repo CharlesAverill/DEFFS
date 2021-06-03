@@ -10,6 +10,9 @@
 #include "deffs.h"
 #include "crypto.h"
 
+#include "net/client.h"
+#include "net/server.h"
+
 int deffs_create(const char *path, mode_t mode, struct fuse_file_info *fi);
 int deffs_open(const char *path, struct fuse_file_info *fi);
 

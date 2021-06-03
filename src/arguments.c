@@ -20,6 +20,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
             argp_error(state, "n_machines=%d is invalid, must be greater than 0",
                        arguments->n_machines);
         break;
+    case 'p':
+        arguments->port = (int)strtol(arg, NULL, 10);
+        break;
     case ARGP_KEY_ARG:
         if (state->arg_num > 2)
             argp_usage(state);
