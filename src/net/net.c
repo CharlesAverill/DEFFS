@@ -1,5 +1,50 @@
 #include "net/net.h"
 
+/*
+* FILENAME: net.c
+*
+* DESCRIPTION: Generic TCP operations, used in conjunction with
+*              client.c and server.c
+*
+* USAGE: 
+*        // CLIENT CODE
+*        struct connection *host_connection;
+*        host_connection = cconnect("<ip address>", <port>, 5);
+*
+*        char rbuf[255] = "Hello from the client!";
+*        netwrite(rbuf, 255, host_connection);
+*
+*        bzero(rbuf, 255);
+*        netread(rbuf, 255, host_connection);
+*
+*        char *message_chunks[(strlen(rbuf) / 3) + 1];
+*        split_into_shards(rbuf, message_chunks, 3);
+*
+*        printf("Rbuf: %s Len: %zu\n", rbuf, strlen(rbuf));
+*
+*        for (int i = 0; i < 3; i++) {
+*            printf("Shard %d: %s\n", i, message_chunks[i]);
+*        }
+*
+*        close_conn(host_connection);
+*        
+*        // NETWORK CODE
+*        struct connection *client_connection;
+*        client_connection = sconnect(<port>);
+*        
+*        char wbuf[255];
+*        bzero(wbuf, 255);
+* 
+*        netread(wbuf, 255, client_connection);
+*        printf("Got %s from the client\n", wbuf);
+* 
+*        netwrite("Hey there client!\n", 255, client_connection);
+* 
+*        close_conn(client_connection);
+*
+* AUTHOR: Charles Averill
+*/
+
 void init_conn(struct connection *ctn)
 {
     bzero(ctn->addr, sizeof(ctn->addr));

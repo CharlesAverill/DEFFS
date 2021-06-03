@@ -21,6 +21,7 @@ char *storepoint;
 char *shardpoint;
 
 int n_machines;
+int port;
 
 struct connection *host_connection;
 
@@ -105,7 +106,7 @@ void *deffs_init(struct fuse_conn_info *conn)
     }
 
     // Testing connections
-    host_connection = sconnect(12345);
+    host_connection = sconnect(port);
 
     return NULL;
 }
@@ -145,42 +146,11 @@ int main(int argc, char *argv[])
 
     // Setup machines
     n_machines = arguments.n_machines;
+    port = arguments.port;
 
     printf("Searching for %d machines\n", n_machines);
-    printf("Port: %d\n", arguments.port);
-
-    host_connection = cconnect("169.254.222.50", 12345, 5);
-
-    char rbuf[255] = "Hello my brother!";
-    netwrite(rbuf, 255, host_connection);
-
-    printf("Getting response...\n");
-
-    bzero(rbuf, 255);
-    netread(rbuf, 255, host_connection);
-
-    printf("%s\n", rbuf);
-
-    close_conn(host_connection);
-
-    /*
-    char *secret     = "This is the secret.";
-    int num_shards   = 4;
-    int num_required = 3;
-
-    char *shares = generate_share_strings(secret, num_shards, num_required);
-    fprintf(stdout, "%s", shares);
-    free(shares);
-    */
-
-    /*
-    char *shards[num_shards];
-    split_into_shards(secret, shards, num_shards);
-    for (int i = 0; i < num_shards; i++) {
-        printf("Shard %d: %s\n", i, shards[i]);
-    }
-    */
+    printf("Port: %d\n", arguments.port);    
 
     // Start FUSE
-    //return fuse_main(static_argc, static_argv, &deffs_oper, NULL);
+    return fuse_main(static_argc, static_argv, &deffs_oper, NULL);
 }
