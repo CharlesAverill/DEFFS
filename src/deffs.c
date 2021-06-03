@@ -146,10 +146,10 @@ int main(int argc, char *argv[])
 
     // Setup machines
     n_machines = arguments.n_machines;
-    port = arguments.port;
+    port       = arguments.port;
 
     printf("Searching for %d machines\n", n_machines);
-    printf("Port: %d\n", arguments.port);    
+    printf("Port: %d\n", arguments.port);
 
     // Start FUSE
     return fuse_main(static_argc, static_argv, &deffs_oper, NULL);

@@ -31,6 +31,7 @@
 *        // NETWORK CODE
 *        struct connection *client_connection;
 *        client_connection = sconnect(<port>);
+*        saccept(client_connection);
 *        
 *        char wbuf[255];
 *        bzero(wbuf, 255);
@@ -77,7 +78,7 @@ int close_conn(struct connection *ctn)
 int netwrite(char *buf, size_t size, struct connection *ctn)
 {
     if (write(ctn->sockfd, buf, size) < 0) {
-        fprintf(stderr, "Error writing to socket");
+        fprintf(stderr, "Error writing to socket\n");
         return 1;
     }
 
@@ -87,7 +88,7 @@ int netwrite(char *buf, size_t size, struct connection *ctn)
 int netread(char *buf, size_t size, struct connection *ctn)
 {
     if (read(ctn->sockfd, buf, size) < 0) {
-        fprintf(stderr, "Error reading from socket");
+        fprintf(stderr, "Error reading from socket\n");
         return 1;
     }
 
