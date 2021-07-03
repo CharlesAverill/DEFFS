@@ -5,10 +5,13 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "utils.h"
 #include "deffs.h"
 #include "crypto.h"
+
+#include "c-sss/shamir.h"
 
 #include "net/client.h"
 #include "net/server.h"

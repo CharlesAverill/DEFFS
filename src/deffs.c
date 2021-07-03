@@ -27,7 +27,7 @@ struct connection *host_connection;
 
 static struct fuse_operations deffs_oper = {
     .init     = deffs_init,
-    .destroy  = NULL, //deffs_destroy,
+    .destroy  = deffs_destroy,
     .getattr  = deffs_getattr,
     .fgetattr = deffs_fgetattr,
 #ifndef __APPLE__
@@ -105,10 +105,15 @@ void *deffs_init(struct fuse_conn_info *conn)
         exit(1);
     }
 
-    // Testing connections
     host_connection = sconnect(port);
 
     return NULL;
+}
+
+void deffs_destroy(void *private_data)
+{
+    close_conn(host_connection);
+    printf("\nThank you for using DEFFS!\n");
 }
 
 const char *argp_program_version     = "DEFFS 0.0.3";
@@ -128,7 +133,7 @@ int main(int argc, char *argv[])
     // Argument parsing
     struct arguments arguments;
     arguments.n_machines = 1;
-    arguments.port       = 13035; // Conway's Constant
+    arguments.port       = DEFAULT_PORT;
 
     argp_parse(&argp, argc, argv, 0, 0, &arguments);
 

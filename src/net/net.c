@@ -77,9 +77,15 @@ int close_conn(struct connection *ctn)
 
 int netwrite(char *buf, size_t size, struct connection *ctn)
 {
-    if (write(ctn->sockfd, buf, size) < 0) {
-        fprintf(stderr, "Error writing to socket\n");
-        return 1;
+    ssize_t total_bytes_written = 0;
+    while (total_bytes_written != size) {
+        ssize_t bytes_written =
+            write(ctn->sockfd, &buf[total_bytes_written], size - total_bytes_written);
+        if (bytes_written < 0) {
+            fprintf(stderr, "Error writing to socket\n");
+            return 1;
+        }
+        total_bytes_written += bytes_written;
     }
 
     return 0;

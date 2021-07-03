@@ -38,19 +38,40 @@ struct connection *sconnect(int portno)
 
 int saccept(struct connection *ctn)
 {
-    socklen_t clilen;
     struct sockaddr_in cli_addr;
-    clilen = sizeof(cli_addr);
+    socklen_t clilen = sizeof(cli_addr);
+    pthread_t thread_id;
 
     // Listen and accept conection request
     listen(ctn->listenfd, 5);
-    ctn->sockfd = accept(ctn->listenfd, (struct sockaddr *)&cli_addr, &clilen);
+
+    while (
+        (ctn->sockfd = accept(ctn->listenfd, (struct sockaddr *)&cli_addr, (socklen_t *)&clilen))) {
+        if (pthread_create(&thread_id, NULL, connection_handler, (void *)ctn) < 0) {
+            fprintf(stderr, "Error on thread creation\n");
+            return 1;
+        }
+    }
+
     if (ctn->sockfd < 0) {
         fprintf(stderr, "Error on accept\n");
         return 1;
     }
 
     ctn->is_connected = 1;
+
+    return 0;
+}
+
+void *connection_handler(void *vctn)
+{
+    //Get the socket descriptor
+    struct connection *ctn = (struct connection *)vctn;
+
+    char buf[255];
+    netread(buf, 255, ctn);
+
+    printf("Received \"%s\"\n", buf);
 
     return 0;
 }

@@ -140,7 +140,6 @@ struct EncryptionData *get_plaintext(char ciphertext[], unsigned char key[SHARD_
 void get_sha256_hash(char *plaintext, char *obuf)
 {
     unsigned char hash[SHA256_DIGEST_LENGTH];
-    printf("Digest lengtH: %d\n", SHA256_DIGEST_LENGTH);
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
 

@@ -11,13 +11,13 @@
 void split_into_shards(char *in, char *out[], int n)
 {
     // Fill out with n chunks of characters from in
-    int shard_len = (strlen(in) / n) + 1;
+    int chunk_len = (strlen(in) / n);
     for (int i = 0; i < n; i++) {
-        int offset = shard_len * i;
-        out[i]     = malloc(shard_len);
+        int offset = chunk_len * i;
+        out[i]     = malloc(chunk_len + 1);
         strncpy(out[i], in + offset,
-                offset + shard_len < strlen(in) ? shard_len : strlen(in) - offset);
-        out[i][shard_len] = '\0';
+                offset + chunk_len < strlen(in) ? chunk_len : strlen(in) - offset);
+        out[i][chunk_len + 1] = '\0';
     }
 }
 

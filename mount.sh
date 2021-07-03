@@ -7,4 +7,4 @@ rm -rf ~/deffs_mountpoint
 mkdir ~/deffs_mountpoint
 mkdir ~/deffs_storepoint
 
-./bin/DEFFS ~/deffs_mountpoint ~/deffs_storepoint
+./bin/DEFFS ~/deffs_mountpoint ~/deffs_storepoint -n 2

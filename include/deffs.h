@@ -28,13 +28,16 @@ extern char *storepoint;
 extern char *shardpoint;
 
 extern int n_machines;
+extern int port;
 
 extern struct connection *host_connection;
 
-#define SHARD_FN_LEN 32
+// These include the null terminator
+#define SHARD_HASH_LEN 33
+#define SHARD_SUFF_LEN 12 // -XXXX.shard
 #define SHARD_KEY_LEN 17
 
-#define DEFAULT_PORT 7560
+#define DEFAULT_PORT 13035 // Conway's Constant
 
 typedef struct deffs_dirp {
     DIR *dp;
@@ -48,5 +51,6 @@ static inline struct deffs_dirp *get_dirp(struct fuse_file_info *fi)
 }
 
 void *deffs_init(struct fuse_conn_info *conn);
+void deffs_destroy(void *private_data);
 
 #endif
