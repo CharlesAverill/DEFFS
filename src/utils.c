@@ -8,7 +8,7 @@
 
 #include "utils.h"
 
-void split_into_shards(char *in, char *out[], int n)
+void split_into_shards(const char *in, char *out[], int n)
 {
     // Fill out with n chunks of characters from in
     int chunk_len = (strlen(in) / n);

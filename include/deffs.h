@@ -33,7 +33,7 @@ extern int port;
 extern struct connection *host_connection;
 
 // These include the null terminator
-#define SHARD_HASH_LEN 33
+#define SHARD_HASH_LEN SHA256_DIGEST_LENGTH
 #define SHARD_SUFF_LEN 12 // -XXXX.shard
 #define SHARD_KEY_LEN 17
 

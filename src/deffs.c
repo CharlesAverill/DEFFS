@@ -2,7 +2,7 @@
 * FILENAME: deffs.c
 *
 * DESCRIPTION: Main DEFFS logic, including binding DEFFS methods to FUSE
-*                callbacks. Compiles to executable that mounts DEFFS filesystem.
+*              callbacks. Compiles to executable that mounts DEFFS filesystem.
 *
 * USAGE: cmake --build ./ --target DEFFS -- -j 6
 *        mkdir ~/deffs

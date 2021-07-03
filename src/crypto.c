@@ -113,7 +113,7 @@ int decrypt_data(char *ciphertext, int ciphertext_len, char *plaintext, CIPHER_P
     return plaintext_len;
 }
 
-void get_sha256_hash(char *plaintext, char *obuf)
+void get_sha256_hash(const char *plaintext, char obuf[SHA256_DIGEST_LENGTH])
 {
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256_CTX sha256;

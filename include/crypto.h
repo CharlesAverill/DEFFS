@@ -19,7 +19,6 @@ typedef struct CIPHER_PARAMS
 int encrypt_data(char *plaintext, int plaintext_len, char *ciphertext, CIPHER_PARAMS *params);
 int decrypt_data(char *ciphertext, int ciphertext_len, char *plaintext, CIPHER_PARAMS *params);
 
-// struct EncryptionData *get_encrypted_shards(char *plaintext);
-void get_sha256_hash(char *plaintext, char *obuf);
+void get_sha256_hash(const char *plaintext, char obuf[SHA256_DIGEST_LENGTH]);
 
 #endif
