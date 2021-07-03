@@ -9,7 +9,7 @@
 
 #include "deffs.h"
 
-void split_into_shards(char *in, char **out, int n);
+void split_into_shards(const char *in, char **out, int n);
 const char *deffs_path_prepend(const char originalPath[], char to_prepend[]);
 void random_string(char output[], int length);
 int mkdir_if_not_exists(char path[], mode_t mode);

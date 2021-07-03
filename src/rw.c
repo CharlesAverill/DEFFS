@@ -401,69 +401,63 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
         char hash_buf[SHARD_HASH_LEN];
         fread(hash_buf, SHARD_HASH_LEN, 1, header_pointer);
         hash_buf[SHARD_HASH_LEN] = '\0';
-        
+        printf("Header size: %d\n", header_size);
+        printf("hashbuf: %s\n", hash_buf);
+
         // Read chunk size from header file
-        int chunk;
-        fread(chunk, sizeof(int), 1, header_pointer);
+        int chunk_size;
+        fread(&chunk_size, sizeof(int), 1, header_pointer);
+        printf("Chunk size: %d\n", chunk_size);
 
         fclose(header_pointer);
-        
+
+        // Determine size of modified buf
+        int total_size = chunk_size * n_machines;
+        if (offset + size > total_size) {
+            total_size += offset + size - total_size;
+        }
+
         // Recombine all shards
         // TODO: Not efficient, only need to rewrite the shard(s) where data is being modified
-        char combined[chunk_size * n_machines + 1];
+        printf("Recombining shards\n");
+        printf("total size: %d\n", total_size);
+        char combined[total_size + 1];
         combined[0] = '\0';
         for (int i = 0; i < n_machines; i++) {
-            // Construct shard suffix string
-            char shard_suffix[SHARD_SUFF_LEN];
-            sprintf(shard_suffix, "-%04d.shard", i);
-            shard_suffix[SHARD_SUFF_LEN] = '\0';
-
             // Construct shard filepath from hash
-            char shard_path[strlen(shardpoint) + SHARD_HASH_LEN + SHARD_SUFF_LEN]; // Allocates a few extra characters, not a big deal
+            char shard_path[strlen(shardpoint) + SHARD_HASH_LEN +
+                            SHARD_SUFF_LEN]; // Allocates a few extra characters, not a big deal
             strcpy(shard_path, shardpoint);
             strcat(shard_path, hash_buf);
-            strcat(shard_path, shard_suffix);
+            sprintf(shard_path + strlen(shardpoint) + SHARD_HASH_LEN, "-%04d.shard", i);
+            printf("Shard path: %s\n", shard_path);
 
             // Open shard file
             FILE *shard_pointer;
-            shard_pointer = fopen(shard_path, "w");
+            shard_pointer = fopen(shard_path, "r");
 
             // Read chunk from shard
             char temp_chunk[chunk_size];
-            pread(fileno(shard_pointer), temp_chunk, chunk_size, 0);
+            int xread = fread(temp_chunk, chunk_size, 1, shard_pointer);
+            printf("CHUNK: %d | %s\n", xread, temp_chunk);
 
             // Close shard
             fclose(shard_pointer);
-            
+
             // Append chunk to combined
             strcat(combined, temp_chunk);
         }
-        
-        // Modify 
+
+        // Modify
+        fflush(stdout);
+        printf("Len: %zu, offset: %zu\n", total_size, offset);
+        memcpy(combined + offset, buf, size);
 
         // Split buf into chunks
-        int chunk_size = (strlen(buf) / n_machines) + 1;
+        printf("Splitting");
+        chunk_size = (strlen(combined) / n_machines) + 1;
         char *message_chunks[chunk_size];
-        split_into_shards(buf, message_chunks, n_machines);
-
-        // Open shard file
-        FILE *shard_pointer;
-        shard_pointer = fopen(shard_path, "a+");
-
-        pwrite(fileno(shard_pointer), message_chunks[0], chunk_size, offset);
-
-        fclose(shard_pointer);
-    } else if(FLAG_TRUNCATE < 1 && offset == 0){ // Empty
-        fclose(header_pointer);
-
-        // Split buf into chunks
-        int chunk_size = (strlen(buf) / n_machines);
-        char *message_chunks[chunk_size + 1];
-        split_into_shards(buf, message_chunks, n_machines);
-
-        // Generate hash
-        unsigned char hash_buf[SHARD_HASH_LEN];
-        get_sha256_hash(buf, hash_buf);
+        split_into_shards(combined, message_chunks, n_machines);
 
         for (int i = 0; i < n_machines; i++) {
             // Construct shard suffix string
@@ -472,10 +466,12 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
             shard_suffix[SHARD_SUFF_LEN] = '\0';
 
             // Construct shard filepath from hash
-            char shard_path[strlen(shardpoint) + SHARD_HASH_LEN + SHARD_SUFF_LEN]; // Allocates a few extra characters, not a big deal
+            char shard_path[strlen(shardpoint) + SHARD_HASH_LEN +
+                            SHARD_SUFF_LEN]; // Allocates a few extra characters, not a big deal
             strcpy(shard_path, shardpoint);
             strcat(shard_path, hash_buf);
             strcat(shard_path, shard_suffix);
+            printf("Shard path: %s\n", shard_path);
 
             // Open shard file
             FILE *shard_pointer;
@@ -486,13 +482,47 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
             fclose(shard_pointer);
         }
 
-        // Write hash to buf
+        // Write hash and chunk size to buf
         pwrite(fi->fh, hash_buf, strlen(hash_buf), 0);
-        
-        // Write chunk size to buf
-        pwrite(fi->fh, chunk_size, sizeof(int), 0);
+        pwrite(fi->fh, (const void *)&chunk_size, sizeof(int), 0);
+
+    } else if (FLAG_TRUNCATE < 1 && offset == 0) { // Empty
+        fclose(header_pointer);
+
+        // Generate hash
+        unsigned char hash_buf[SHARD_HASH_LEN];
+        get_sha256_hash(buf, hash_buf);
+
+        // Split buf into chunks
+        int chunk_size = (strlen(buf) / n_machines);
+        char *message_chunks[chunk_size + 1];
+        split_into_shards(buf, message_chunks, n_machines);
+
+        for (int i = 0; i < n_machines; i++) {
+            // Construct shard filepath from hash
+            char shard_path[strlen(shardpoint) + SHARD_HASH_LEN +
+                            SHARD_SUFF_LEN]; // Allocates a few extra characters, not a big deal
+            strcpy(shard_path, shardpoint);
+            strcat(shard_path, hash_buf);
+            sprintf(shard_path + strlen(shardpoint) + SHARD_HASH_LEN, "-%04d.shard", i);
+
+            // Open shard file
+            FILE *shard_pointer;
+            shard_pointer = fopen(shard_path, "w");
+
+            printf("Towrite: %s\n", message_chunks[i]);
+            printf("Chunk size: %d\n", chunk_size);
+            int xw = pwrite(fileno(shard_pointer), message_chunks[i], chunk_size, 0);
+            printf("XW: %d\n", xw);
+
+            fclose(shard_pointer);
+        }
+
+        // Write hash and chunk size to buf
+        pwrite(fi->fh, hash_buf, strlen(hash_buf), 0);
+        pwrite(fi->fh, (const void *)&chunk_size, sizeof(int), 0);
     }
-    
+
     FLAG_TRUNCATE = -1;
 
     close_conn(client_connection);
@@ -555,22 +585,18 @@ int deffs_truncate(const char *path, off_t size)
         char hash_buf[SHARD_HASH_LEN];
         fread(hash_buf, SHARD_HASH_LEN, 1, header_pointer);
         hash_buf[SHARD_HASH_LEN] = '\0';
-        
-        fclose(header_pointer);
-        
-        for(int i = 0; i < n_machines; i++){
-            // Construct shard suffix string
-            char shard_suffix[SHARD_SUFF_LEN];
-            sprintf(shard_suffix, "-%04d.shard", i);
-            shard_suffix[SHARD_SUFF_LEN] = '\0';
 
+        fclose(header_pointer);
+
+        for (int i = 0; i < n_machines; i++) {
             // Construct shard filepath from hash
-            char shard_path[strlen(shardpoint) + SHARD_HASH_LEN + SHARD_SUFF_LEN]; // Allocates a few extra characters, not a big deal
+            char shard_path[strlen(shardpoint) + SHARD_HASH_LEN +
+                            SHARD_SUFF_LEN]; // Allocates a few extra characters, not a big deal
             strcpy(shard_path, shardpoint);
             strcat(shard_path, hash_buf);
-            strcat(shard_path, shard_suffix);
-            
-            if(unlink(shard_path) == -1){
+            sprintf(shard_path + strlen(shardpoint) + SHARD_HASH_LEN, "-%04d.shard", i);
+
+            if (unlink(shard_path) == -1) {
                 return -errno;
             }
         }

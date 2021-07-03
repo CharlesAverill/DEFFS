@@ -137,7 +137,7 @@ struct EncryptionData *get_plaintext(char ciphertext[], unsigned char key[SHARD_
     return output;
 }
 
-void get_sha256_hash(char *plaintext, char *obuf)
+void get_sha256_hash(const char *plaintext, char obuf[SHA256_DIGEST_LENGTH])
 {
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256_CTX sha256;
