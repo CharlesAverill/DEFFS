@@ -5,136 +5,112 @@
 *              AES encryption of strings
 *
 * USAGE: char *plaintext = "Hello World!";
+*        char ciphertext[128];
+*        char decrypted[128];
+*        
+*        AES_PARAMS *params = (AES_PARAMS*)malloc(sizeof(AES_PARAMS));
+*        params->cipher = EVP_aes_128_cbc();
+*        // You can specify the key and iv by changing the values, 
+*        // or randomly assign values to them by leaving them NULL.
 *
-*        struct EncryptionData *cipher = get_ciphertext(plaintext);
-*        printf("Cipher text: --%s--\n", cipher->ciphertext);
+*        int ciphertext_len = encrypt_data(plaintext, strlen(plaintext), ciphertext, params);
+*        printf("Cipher text: --%s--\n", ciphertext);
 *
-*        struct EncryptionData *plain = get_plaintext(cipher->ciphertext, cipher->key);
-*        printf("Cipher text: --%s--\n", plain->plaintext);
+*        int decrypted_len = decrypt_data(ciphertext, ciphertext_len, decrypted, params);
+*        printf("Plain text: --%s--\n", decrypted);
 *
-* AUTHOR: Charles Averill
+* AUTHOR: Sidh Suchdev
 */
 
 #include "crypto.h"
 
-struct EncryptionData *get_ciphertext(char *plaintext)
+int encrypt_data(char *plaintext, int plaintext_len, char *ciphertext, AES_PARAMS *params)
 {
-    // Initialize cipher variables
-    AES_KEY AES_key;
-    unsigned char key[SHARD_KEY_LEN];
-    unsigned char ciphertext[16];
+    // Initialize cipher context
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    // If allocation failed, return
+    if (ctx == NULL) {
+        return -1;
+    }
+    EVP_CIPHER_CTX_init(ctx);
 
-    // Extend plaintext if needed
-    if (strlen(plaintext) < 15) {
-        realloc(plaintext, 16);
+    // If params are not initialized, return
+    if (params == NULL) {
+        return -1;
     }
 
-    // Allocate memory for returned struct
-    struct EncryptionData *output = malloc(sizeof(struct EncryptionData));
-    if (output == NULL) {
-        return NULL;
+    // If the cipher is not specified, return
+    if (params->cipher == NULL) {
+        return -1;
     }
 
-    // Set plaintext before any operations in case of mangling by OpenSSL
-    output->plaintext = malloc(strlen(plaintext));
-    if (output->plaintext == NULL) {
-        free(output);
-        return NULL;
+    // Determine key and iv length based on cipher type
+    int key_length = EVP_CIPHER_key_length(params->cipher);
+    int iv_length = EVP_CIPHER_iv_length(params->cipher);
+
+    // If iv is not specified, randomly assign one
+    if (params->iv == NULL) {
+        params->iv = (char *)malloc(sizeof(unsigned char) * iv_length);
+        if (params->iv == NULL) {
+            return -1;
+        }
+        RAND_bytes(params->iv, iv_length);
     }
-    strcpy(output->plaintext, plaintext);
-
-    printf("Plaintext: %s\n", output->plaintext);
-
-    // Fill the key with random values
-    random_string(key, 17);
-
-    AES_set_encrypt_key((const unsigned char *)key, 128, &AES_key);
-
-    // Encrypt plaintext
-    AES_encrypt(plaintext, ciphertext, &AES_key);
-
-    printf("Ciphertext: %s\n", ciphertext);
-
-    // Assign key and ciphertext to returned struct
-    strcpy(output->key, key);
-
-    output->ciphertext = malloc(strlen(ciphertext));
-    if (output->ciphertext == NULL) {
-        free(output);
-        return NULL;
+    // If key is not specified, randomly specify one
+    if (params->key == NULL) {
+        params->key = (char *)malloc(sizeof(unsigned char) * key_length);
+        if (params->key == NULL) {
+            return -1;
+        }
+        RAND_bytes(params->key, key_length);
     }
-    strcpy(output->ciphertext, ciphertext);
 
-    return output;
+    // Configure context to encrypt based on cipher
+    EVP_EncryptInit(ctx, params->cipher, params->key, params->iv);
+
+    // Encrypt data and finding ciphertext length
+    int outl;
+    int ciphertext_len;
+    EVP_EncryptUpdate(ctx, ciphertext, &outl, plaintext, plaintext_len);
+    ciphertext_len = outl;
+    EVP_EncryptFinal(ctx, ciphertext + outl, &outl);
+    ciphertext_len += outl;
+
+    // Freeing context
+    EVP_CIPHER_CTX_free(ctx);
+
+    return ciphertext_len;
 }
 
-struct EncryptionData *get_ciphertext_with_key(char *plaintext, unsigned char key[SHARD_KEY_LEN])
+int decrypt_data(char *ciphertext, int ciphertext_len, char *plaintext, AES_PARAMS *params)
 {
     // Initialize cipher variables
-    AES_KEY AES_key;
-    unsigned char ciphertext[16];
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (ctx == NULL) {
+        return -1;
+    }
+    EVP_CIPHER_CTX_init(ctx);
 
-    // Allocate memory for returned struct
-    struct EncryptionData *output = malloc(sizeof(struct EncryptionData));
-    if (output == NULL) {
-        return NULL;
+    // If the parameters aren't specified, return
+    if (params == NULL || params->cipher == NULL || params->iv == NULL || params->key == NULL) {
+        return -1;
     }
 
-    // Set plaintext before any operations in case of mangling by OpenSSL
-    output->plaintext = malloc(strlen(plaintext));
-    if (output->plaintext == NULL) {
-        free(output);
-        return NULL;
-    }
-    strcpy(output->plaintext, plaintext);
+    // Configure context to decrypt based on cipher
+    EVP_DecryptInit(ctx, params->cipher, params->key, params->iv);
 
-    AES_set_encrypt_key((const unsigned char *)key, 128, &AES_key);
+    // Decrypt data and determine plaintext length
+    int outl;
+    int plaintext_len;
+    EVP_DecryptUpdate(ctx, plaintext, &outl, ciphertext, ciphertext_len);
+    plaintext_len = outl;
+    EVP_DecryptFinal(ctx, plaintext + outl, &outl);
+    plaintext_len += outl;
 
-    // Encrypt plaintext
-    AES_encrypt("bruh", ciphertext, &AES_key);
+    // Free context
+    EVP_CIPHER_CTX_free(ctx);
 
-    // Assign key and ciphertext to returned struct
-    strcpy(output->key, key);
-
-    output->ciphertext = malloc(strlen(ciphertext));
-    if (output->ciphertext == NULL) {
-        free(output);
-        return NULL;
-    }
-    strcpy(output->ciphertext, ciphertext);
-
-    return output;
-}
-
-struct EncryptionData *get_plaintext(char ciphertext[], unsigned char key[SHARD_KEY_LEN])
-{
-    // Initialize cipher variables
-    AES_KEY AES_key;
-    unsigned char plaintext[16];
-
-    AES_set_decrypt_key((const unsigned char *)key, 128, &AES_key);
-
-    // Decrypt ciphertext
-    AES_decrypt(ciphertext, plaintext, &AES_key);
-
-    // Allocate memory for returned struct
-    struct EncryptionData *output = malloc(sizeof(struct EncryptionData));
-    if (output == NULL) {
-        return NULL;
-    }
-
-    // Assign values to returned struct
-    strcpy(output->key, key);
-
-    output->plaintext = malloc(strlen(plaintext));
-    if (output->plaintext == NULL) {
-        free(output);
-        return NULL;
-    }
-
-    strcpy(output->plaintext, plaintext);
-
-    return output;
+    return plaintext_len;
 }
 
 void get_sha256_hash(char *plaintext, char *obuf)
@@ -152,3 +128,4 @@ void get_sha256_hash(char *plaintext, char *obuf)
     }
     obuf[SHA256_DIGEST_LENGTH] = '\0';
 }
+
