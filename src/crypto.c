@@ -8,7 +8,7 @@
 *        char ciphertext[128];
 *        char decrypted[128];
 *        
-*        AES_PARAMS *params = (AES_PARAMS*)malloc(sizeof(AES_PARAMS));
+*        CIPHER_PARAMS *params = (CIPHER_PARAMS*)malloc(sizeof(CIPHER_PARAMS));
 *        params->cipher = EVP_aes_128_cbc();
 *        // You can specify the key and iv by changing the values, 
 *        // or randomly assign values to them by leaving them NULL.
@@ -24,7 +24,7 @@
 
 #include "crypto.h"
 
-int encrypt_data(char *plaintext, int plaintext_len, char *ciphertext, AES_PARAMS *params)
+int encrypt_data(char *plaintext, int plaintext_len, char *ciphertext, CIPHER_PARAMS *params)
 {
     // Initialize cipher context
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
@@ -82,7 +82,7 @@ int encrypt_data(char *plaintext, int plaintext_len, char *ciphertext, AES_PARAM
     return ciphertext_len;
 }
 
-int decrypt_data(char *ciphertext, int ciphertext_len, char *plaintext, AES_PARAMS *params)
+int decrypt_data(char *ciphertext, int ciphertext_len, char *plaintext, CIPHER_PARAMS *params)
 {
     // Initialize cipher variables
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();

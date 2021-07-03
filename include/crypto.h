@@ -9,15 +9,15 @@
 #include <string.h>
 #include <stdio.h>
 
-typedef struct AES_PARAMS
+typedef struct CIPHER_PARAMS
 {
     unsigned char *key;
     unsigned char *iv;
     const EVP_CIPHER *cipher;
-} AES_PARAMS;
+} CIPHER_PARAMS;
 
-int encrypt_data(char *plaintext, int plaintext_len, char *ciphertext, AES_PARAMS *params);
-int decrypt_data(char *ciphertext, int ciphertext_len, char *plaintext, AES_PARAMS *params);
+int encrypt_data(char *plaintext, int plaintext_len, char *ciphertext, CIPHER_PARAMS *params);
+int decrypt_data(char *ciphertext, int ciphertext_len, char *plaintext, CIPHER_PARAMS *params);
 
 // struct EncryptionData *get_encrypted_shards(char *plaintext);
 void get_sha256_hash(char *plaintext, char *obuf);
