@@ -9,19 +9,16 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "utils.h"
+typedef struct CIPHER_PARAMS
+{
+    unsigned char *key;
+    unsigned char *iv;
+    const EVP_CIPHER *cipher;
+} CIPHER_PARAMS;
 
-typedef struct EncryptionData {
-    char key[17];
-    unsigned char *plaintext;
-    unsigned char *ciphertext;
-} EncryptionData;
+int encrypt_data(char *plaintext, int plaintext_len, char *ciphertext, CIPHER_PARAMS *params);
+int decrypt_data(char *ciphertext, int ciphertext_len, char *plaintext, CIPHER_PARAMS *params);
 
-struct EncryptionData *get_ciphertext(char plaintext[]);
-struct EncryptionData *get_plaintext(char ciphertext[], unsigned char key[16]);
-struct EncryptionData *get_ciphertext_with_key(char *plaintext, unsigned char key[16]);
-
-struct EncryptionData *get_encrypted_shards(char *plaintext);
 void get_sha256_hash(const char *plaintext, char obuf[SHA256_DIGEST_LENGTH]);
 
 #endif
