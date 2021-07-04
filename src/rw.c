@@ -382,7 +382,7 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
 
     // Open header file
     FILE *header_pointer;
-    header_pointer = fopen(nonconst_path, "a+");
+    header_pointer = fopen(nonconst_path, "r");
     if (header_pointer == NULL) {
         fprintf(stderr, "Could not open file %s for encrypting, %s\n", nonconst_path, path);
         exit(1);
@@ -398,18 +398,12 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
 
     if (FLAG_TRUNCATE != 0) { // Not empty
         // Read hash from header file
-        char hash_buf[SHARD_HASH_LEN];
-        fread(hash_buf, SHARD_HASH_LEN, 1, header_pointer);
-        hash_buf[SHARD_HASH_LEN] = '\0';
-        printf("Header size: %d\n", header_size);
-        printf("hashbuf: %s\n", hash_buf);
+        char *hash_buf = malloc(SHARD_HASH_LEN);
+        fread(hash_buf, 1, SHARD_HASH_LEN, header_pointer);
 
         // Read chunk size from header file
         int chunk_size;
         fread(&chunk_size, sizeof(int), 1, header_pointer);
-        printf("Chunk size: %d\n", chunk_size);
-
-        fclose(header_pointer);
 
         // Determine size of modified buf
         int total_size = chunk_size * n_machines;
@@ -419,9 +413,8 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
 
         // Recombine all shards
         // TODO: Not efficient, only need to rewrite the shard(s) where data is being modified
-        printf("Recombining shards\n");
-        printf("total size: %d\n", total_size);
-        char combined[total_size + 1];
+        char *combined = malloc(total_size + 1);
+        printf("Total size: %d\n", total_size);
         combined[0] = '\0';
         for (int i = 0; i < n_machines; i++) {
             // Construct shard filepath from hash
@@ -435,11 +428,14 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
             // Open shard file
             FILE *shard_pointer;
             shard_pointer = fopen(shard_path, "r");
+            if (shard_pointer == NULL) {
+                fprintf(stderr, "Error opening shard %s\n", shard_path);
+                exit(1);
+            }
 
             // Read chunk from shard
             char temp_chunk[chunk_size];
-            int xread = fread(temp_chunk, chunk_size, 1, shard_pointer);
-            printf("CHUNK: %d | %s\n", xread, temp_chunk);
+            fread(temp_chunk, chunk_size, 1, shard_pointer);
 
             // Close shard
             fclose(shard_pointer);
@@ -447,6 +443,8 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
             // Append chunk to combined
             strcat(combined, temp_chunk);
         }
+
+        printf("Combined: %s %zu\n", combined, strlen(combined));
 
         // Modify
         fflush(stdout);
@@ -475,20 +473,28 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
 
             // Open shard file
             FILE *shard_pointer;
+            printf("Opening\n");
             shard_pointer = fopen(shard_path, "w");
+            if (shard_pointer == NULL) {
+                fprintf(stderr, "Error opening shard %s\n", shard_path);
+                exit(1);
+            }
 
+            printf("Writing\n");
             pwrite(fileno(shard_pointer), message_chunks[i], chunk_size, 0);
 
+            printf("Closing\n");
             fclose(shard_pointer);
         }
 
         // Write hash and chunk size to buf
-        pwrite(fi->fh, hash_buf, strlen(hash_buf), 0);
-        pwrite(fi->fh, (const void *)&chunk_size, sizeof(int), 0);
+        pwrite(fi->fh, hash_buf, SHARD_HASH_LEN, 0);
+        pwrite(fi->fh, (const void *)&chunk_size, sizeof(int), SHARD_HASH_LEN);
+
+        // Free memory
+        free(hash_buf);
 
     } else if (FLAG_TRUNCATE < 1 && offset == 0) { // Empty
-        fclose(header_pointer);
-
         // Generate hash
         unsigned char hash_buf[SHARD_HASH_LEN];
         get_sha256_hash(buf, hash_buf);
@@ -509,22 +515,24 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
             // Open shard file
             FILE *shard_pointer;
             shard_pointer = fopen(shard_path, "w");
+            if (shard_pointer == NULL) {
+                fprintf(stderr, "Error opening shard %s\n", shard_path);
+                exit(1);
+            }
 
-            printf("Towrite: %s\n", message_chunks[i]);
-            printf("Chunk size: %d\n", chunk_size);
             int xw = pwrite(fileno(shard_pointer), message_chunks[i], chunk_size, 0);
-            printf("XW: %d\n", xw);
 
             fclose(shard_pointer);
         }
 
         // Write hash and chunk size to buf
-        pwrite(fi->fh, hash_buf, strlen(hash_buf), 0);
-        pwrite(fi->fh, (const void *)&chunk_size, sizeof(int), 0);
+        pwrite(fi->fh, hash_buf, SHARD_HASH_LEN, 0);
+        pwrite(fi->fh, (const void *)&chunk_size, sizeof(int), SHARD_HASH_LEN);
     }
 
     FLAG_TRUNCATE = -1;
 
+    fclose(header_pointer);
     close_conn(client_connection);
 
     return size;
