@@ -46,7 +46,7 @@ int encrypt_data(char *plaintext, int plaintext_len, char *ciphertext, CIPHER_PA
 
     // Determine key and iv length based on cipher type
     int key_length = EVP_CIPHER_key_length(params->cipher);
-    int iv_length = EVP_CIPHER_iv_length(params->cipher);
+    int iv_length  = EVP_CIPHER_iv_length(params->cipher);
 
     // If iv is not specified, randomly assign one
     if (params->iv == NULL) {
@@ -128,4 +128,3 @@ void get_sha256_hash(const char *plaintext, char obuf[SHA256_DIGEST_LENGTH])
     }
     obuf[SHA256_DIGEST_LENGTH] = '\0';
 }
-
