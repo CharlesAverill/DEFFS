@@ -16,14 +16,82 @@ int FLAG_TRUNCATE;
 
 // TODO: Replace all exit calls with error returns
 
+int read_shard_data(FILE *header_pointer, size_t size, off_t offset, struct deffs_shard_data *sd)
+{
+    if (fread(sd->hash_buf, SHARD_HASH_LEN, 1, header_pointer) != 1) {
+        fprintf(stderr, "Hash buf read error\n");
+        return 1;
+    }
+
+    // Read chunk size from header file
+    if (fread(&sd->chunk_size, sizeof(int), 1, header_pointer) != 1) {
+        fprintf(stderr, "Chunk size read error");
+        return 1;
+    }
+
+    // Determine size of entire buf
+    int total_size = sd->chunk_size * n_machines;
+    if ((offset != -1 && size != -1) && offset + size > total_size) {
+        // This is a check used when modifying files
+        // If not using read_shard_data during a rewrite, size and offset should be -1
+        total_size += offset + size - total_size;
+    }
+    sd->total_size = total_size;
+
+    return 0;
+}
+
+int combine_shards(struct deffs_shard_data *sd, char *combined, int size)
+{
+    // Recombine all shards
+    // TODO: Not efficient, only need to rewrite the shard(s) where data is being modified
+    combined[0] = '\0';
+    for (int i = 0; i < n_machines; i++) {
+        // Construct shard filepath from hash
+        char shard_path[strlen(shardpoint) + SHARD_HASH_LEN +
+                        SHARD_SUFF_LEN]; // Allocates a few extra characters, not a big deal
+        strcpy(shard_path, shardpoint);
+        strcat(shard_path, sd->hash_buf);
+        sprintf(shard_path + strlen(shardpoint) + SHARD_HASH_LEN, "-%04d.shard", i);
+
+        // Open shard file
+        FILE *shard_pointer;
+        shard_pointer = fopen(shard_path, "r");
+        if (shard_pointer == NULL) {
+            fprintf(stderr, "Error opening shard %s\n", shard_path);
+            return 1;
+        }
+
+        // Read chunk from shard
+        char temp_chunk[sd->chunk_size];
+        if (fread(temp_chunk, sd->chunk_size, 1, shard_pointer) != 1) {
+            fprintf(stderr, "Mismatched lengths while reading shard data for shard %s\n",
+                    shard_path);
+            return 1;
+        }
+        temp_chunk[sd->chunk_size] = '\0';
+
+        printf("Chunk: %s\n", temp_chunk);
+
+        // Close shard
+        fclose(shard_pointer);
+
+        // Append chunk to combined
+        strcat(combined, temp_chunk);
+    }
+    combined[size] = '\0';
+
+    return 0;
+}
+
 int deffs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
     int fd;
 
-    // Copy path to non-constant copy for fopen
-    char nonconst_path[strlen(storepoint) + strlen(path) + 1];
-    strcpy(nonconst_path, path);
-    strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
+    // Copy path to non-constant copy
+    int path_len = strlen(path) + strlen(storepoint) + 1;
+    char nonconst_path[path_len];
+    get_full_path(path, nonconst_path, path_len);
 
     fd = open(nonconst_path, fi->flags, mode);
     if (fd == -1)
@@ -40,10 +108,10 @@ int deffs_open(const char *path, struct fuse_file_info *fi)
 {
     int fd;
 
-    // Copy path to non-constant copy for fopen
-    char nonconst_path[strlen(storepoint) + strlen(path) + 1];
-    strcpy(nonconst_path, path);
-    strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
+    // Copy path to non-constant copy
+    int path_len = strlen(path) + strlen(storepoint) + 1;
+    char nonconst_path[path_len];
+    get_full_path(path, nonconst_path, path_len);
 
     fd = open(nonconst_path, fi->flags);
     if (fd == -1)
@@ -57,7 +125,12 @@ int deffs_readlink(const char *path, char *buf, size_t size)
 {
     int res;
 
-    res = readlink(path, buf, size - 1);
+    // Copy path to non-constant copy
+    int path_len = strlen(path) + strlen(storepoint) + 1;
+    char nonconst_path[path_len];
+    get_full_path(path, nonconst_path, path_len);
+
+    res = readlink(nonconst_path, buf, size - 1);
     if (res == -1)
         return -errno;
 
@@ -72,11 +145,10 @@ int deffs_opendir(const char *path, struct fuse_file_info *fi)
     if (d == NULL)
         return -ENOMEM;
 
-    // Copy path to non-constant copy for fopen
-    char nonconst_path[strlen(storepoint) + strlen(path) + 1];
-    strcpy(nonconst_path, path);
-    strcpy(nonconst_path, path);
-    strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
+    // Copy path to non-constant copy
+    int path_len = strlen(path) + strlen(storepoint) + 1;
+    char nonconst_path[path_len];
+    get_full_path(path, nonconst_path, path_len);
 
     d->dp = opendir(nonconst_path);
     if (d->dp == NULL) {
@@ -95,15 +167,15 @@ int deffs_mknod(const char *path, mode_t mode, dev_t rdev)
 {
     int res;
 
-    // Copy path to non-constant copy for fopen
-    char nonconst_path[strlen(storepoint) + strlen(path) + 1];
-    strcpy(nonconst_path, path);
-    strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
+    // Copy path to non-constant copy
+    int path_len = strlen(path) + strlen(storepoint) + 1;
+    char nonconst_path[path_len];
+    get_full_path(path, nonconst_path, path_len);
 
     if (S_ISFIFO(mode))
-        res = mkfifo(path, mode);
+        res = mkfifo(nonconst_path, mode);
     else
-        res = mknod(path, mode, rdev);
+        res = mknod(nonconst_path, mode, rdev);
     if (res == -1)
         return -errno;
 
@@ -114,10 +186,10 @@ int deffs_mkdir(const char *path, mode_t mode)
 {
     int res;
 
-    // Copy path to non-constant copy for fopen
-    char nonconst_path[strlen(storepoint) + strlen(path) + 1];
-    strcpy(nonconst_path, path);
-    strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
+    // Copy path to non-constant copy
+    int path_len = strlen(path) + strlen(storepoint) + 1;
+    char nonconst_path[path_len];
+    get_full_path(path, nonconst_path, path_len);
 
     res = mkdir(nonconst_path, mode);
     if (res == -1)
@@ -130,10 +202,10 @@ int deffs_unlink(const char *path)
 {
     int res;
 
-    // Copy path to non-constant copy for fopen
-    char nonconst_path[strlen(storepoint) + strlen(path) + 1];
-    strcpy(nonconst_path, path);
-    strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
+    // Copy path to non-constant copy
+    int path_len = strlen(path) + strlen(storepoint) + 1;
+    char nonconst_path[path_len];
+    get_full_path(path, nonconst_path, path_len);
 
     // Open header file
     FILE *header_pointer;
@@ -172,12 +244,12 @@ int deffs_rmdir(const char *path)
 {
     int res;
 
-    // Copy path to non-constant copy for fopen
-    char nonconst_path[strlen(storepoint) + strlen(path) + 1];
-    strcpy(nonconst_path, path);
-    strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
+    // Copy path to non-constant copy
+    int path_len = strlen(path) + strlen(storepoint) + 1;
+    char nonconst_path[path_len];
+    get_full_path(path, nonconst_path, path_len);
 
-    res = rmdir(path);
+    res = rmdir(nonconst_path);
     if (res == -1)
         return -errno;
 
@@ -188,15 +260,15 @@ int deffs_symlink(const char *from, const char *to)
 {
     int res;
 
-    // Copy from to non-constant copy for fopen
-    char nonconst_from[strlen(storepoint) + strlen(from) + 1];
-    strcpy(nonconst_from, nonconst_from);
-    strcpy(nonconst_from, deffs_path_prepend(nonconst_from, storepoint));
+    // Copy path to non-constant copy
+    int path_len_from = strlen(from) + strlen(storepoint) + 1;
+    char nonconst_from[path_len_from];
+    get_full_path(from, nonconst_from, path_len_from);
 
-    // Copy to to non-constant copy for fopen
-    char nonconst_to[strlen(storepoint) + strlen(to) + 1];
-    strcpy(nonconst_to, to);
-    strcpy(nonconst_to, deffs_path_prepend(nonconst_to, storepoint));
+    // Copy path to non-constant copy
+    int path_len_to = strlen(to) + strlen(storepoint) + 1;
+    char nonconst_to[path_len_to];
+    get_full_path(to, nonconst_to, path_len_to);
 
     res = symlink(nonconst_from, nonconst_to);
     if (res == -1)
@@ -209,15 +281,15 @@ int deffs_rename(const char *from, const char *to)
 {
     int res;
 
-    // Copy from to non-constant copy for fopen
-    char nonconst_from[strlen(storepoint) + strlen(from) + 1];
-    strcpy(nonconst_from, nonconst_from);
-    strcpy(nonconst_from, deffs_path_prepend(nonconst_from, storepoint));
+    // Copy path to non-constant copy
+    int path_len_from = strlen(from) + strlen(storepoint) + 1;
+    char nonconst_from[path_len_from];
+    get_full_path(from, nonconst_from, path_len_from);
 
-    // Copy to to non-constant copy for fopen
-    char nonconst_to[strlen(storepoint) + strlen(to) + 1];
-    strcpy(nonconst_to, to);
-    strcpy(nonconst_to, deffs_path_prepend(nonconst_to, storepoint));
+    // Copy path to non-constant copy
+    int path_len_to = strlen(to) + strlen(storepoint) + 1;
+    char nonconst_to[path_len_to];
+    get_full_path(to, nonconst_to, path_len_to);
 
     res = rename(nonconst_from, nonconst_to);
     if (res == -1)
@@ -230,15 +302,15 @@ int deffs_link(const char *from, const char *to)
 {
     int res;
 
-    // Copy from to non-constant copy for fopen
-    char nonconst_from[strlen(storepoint) + strlen(from) + 1];
-    strcpy(nonconst_from, nonconst_from);
-    strcpy(nonconst_from, deffs_path_prepend(nonconst_from, storepoint));
+    // Copy path to non-constant copy
+    int path_len_from = strlen(from) + strlen(storepoint) + 1;
+    char nonconst_from[path_len_from];
+    get_full_path(from, nonconst_from, path_len_from);
 
-    // Copy to to non-constant copy for fopen
-    char nonconst_to[strlen(storepoint) + strlen(to) + 1];
-    strcpy(nonconst_to, to);
-    strcpy(nonconst_to, deffs_path_prepend(nonconst_to, storepoint));
+    // Copy path to non-constant copy
+    int path_len_to = strlen(to) + strlen(storepoint) + 1;
+    char nonconst_to[path_len_to];
+    get_full_path(to, nonconst_to, path_len_to);
 
     res = link(nonconst_from, nonconst_to);
     if (res == -1)
@@ -251,10 +323,10 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset, struct fu
 {
     int res;
 
-    // Copy path to non-constant copy for fopen
-    char nonconst_path[strlen(storepoint) + strlen(path) + 1];
-    strcpy(nonconst_path, path);
-    strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
+    // Copy path to non-constant copy
+    int path_len = strlen(path) + strlen(storepoint) + 1;
+    char nonconst_path[path_len];
+    get_full_path(path, nonconst_path, path_len);
 
     if (starts_with(nonconst_path, shardpoint) == 1 && ends_with(nonconst_path, ".shard") == 1) {
         res = pread(fi->fh, buf, size, offset);
@@ -269,63 +341,21 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset, struct fu
             exit(1);
         }
 
-        // Get header size
-        fseek(header_pointer, 0, SEEK_END);
-        int header_size = ftell(header_pointer);
-        fseek(header_pointer, 0, SEEK_SET);
-        if (header_size <= 0) {
-            fprintf(stderr, "Cannot trace corresponding file shard for file %s", nonconst_path);
-            exit(1);
-        }
+        // Allocate and fill shard data
+        struct deffs_shard_data *sd = malloc(sizeof(struct deffs_shard_data));
+        read_shard_data(header_pointer, -1, -1, sd);
 
-        // Read hash from header file
-        char hash_buf[SHARD_HASH_LEN + 1];
-        fread(hash_buf, SHARD_HASH_LEN, 1, header_pointer);
-        hash_buf[SHARD_HASH_LEN] = '\0';
+        // Recombine all shards
+        printf("Allocating\n");
+        char *combined = malloc(sd->total_size + 1);
+        printf("Combining\n");
+        combine_shards(sd, combined, sd->total_size + 1);
+        printf("Combined: %s\n", combined);
 
-        fclose(header_pointer);
+        strcpy(buf, combined);
+        printf("After copy: %s\n", buf);
 
-        // Construct shard filepath from hash
-        char shard_path[strlen(shardpoint) + SHARD_HASH_LEN + 7];
-        strcpy(shard_path, shardpoint);
-        strcat(shard_path, hash_buf);
-        strcat(shard_path, ".shard");
-
-        // Open shard file
-        FILE *shard_pointer;
-        shard_pointer = fopen(shard_path, "r");
-
-        res = pread(fileno(shard_pointer), buf, size, offset);
-
-        /*
-        // Get shard size
-        fseek(shard_pointer, 0, SEEK_END);
-        int shard_size = ftell(shard_pointer);
-        fseek(shard_pointer, 0, SEEK_SET);
-        
-        // Read shard metadata
-        char key[SHARD_KEY_LEN];
-        fread(key, SHARD_KEY_LEN, 1, shard_pointer);
-
-        // Read shard data
-        char ciphertext_buf[shard_size - SHARD_KEY_LEN];
-        fread(ciphertext_buf, shard_size - SHARD_KEY_LEN, 1, shard_pointer);
-
-        fclose(shard_pointer);
-
-        fprintf(stderr, "Ciphertext: %s\nKey: %s\n", ciphertext_buf, key);
-
-        // Decrypt shard
-        struct EncryptionData *plain = get_plaintext(ciphertext_buf, key);
-
-        // Only read the requested data
-        char *sub_buf = malloc(size);
-        strncpy(sub_buf, plain->plaintext + offset, size);
-
-        strcpy(buf, sub_buf);
-
-        res = strlen(buf);
-        */
+        res = size;
     }
 
     return res;
@@ -372,10 +402,10 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
 {
     int res;
 
-    // Copy path to non-constant copy for fopen
-    char nonconst_path[strlen(storepoint) + strlen(path) + 1];
-    strcpy(nonconst_path, path);
-    strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
+    // Copy path to non-constant copy
+    int path_len = strlen(path) + strlen(storepoint) + 1;
+    char nonconst_path[path_len];
+    get_full_path(path, nonconst_path, path_len);
 
     // umask so that only the creator can rwx their shards
     umask(007);
@@ -394,64 +424,25 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
     fseek(header_pointer, 0, SEEK_SET);
 
     // Open connection to a single client
-    connection *client_connection = cconnect("169.254.222.50", port, 5);
+    //connection *client_connection = cconnect("169.254.222.50", port, 5);
 
     if (FLAG_TRUNCATE != 0) { // Not empty
-        // Read hash from header file
-        char *hash_buf = malloc(SHARD_HASH_LEN);
-        fread(hash_buf, 1, SHARD_HASH_LEN, header_pointer);
-
-        // Read chunk size from header file
-        int chunk_size;
-        fread(&chunk_size, sizeof(int), 1, header_pointer);
-
-        // Determine size of modified buf
-        int total_size = chunk_size * n_machines;
-        if (offset + size > total_size) {
-            total_size += offset + size - total_size;
-        }
+        // Allocate and fill shard data
+        struct deffs_shard_data *sd = malloc(sizeof(struct deffs_shard_data));
+        read_shard_data(header_pointer, size, offset, sd);
 
         // Recombine all shards
-        // TODO: Not efficient, only need to rewrite the shard(s) where data is being modified
-        char *combined = malloc(total_size + 1);
-        combined[0]    = '\0';
-        for (int i = 0; i < n_machines; i++) {
-            // Construct shard filepath from hash
-            char shard_path[strlen(shardpoint) + SHARD_HASH_LEN +
-                            SHARD_SUFF_LEN]; // Allocates a few extra characters, not a big deal
-            strcpy(shard_path, shardpoint);
-            strcat(shard_path, hash_buf);
-            sprintf(shard_path + strlen(shardpoint) + SHARD_HASH_LEN, "-%04d.shard", i);
-
-            // Open shard file
-            FILE *shard_pointer;
-            shard_pointer = fopen(shard_path, "r");
-            if (shard_pointer == NULL) {
-                fprintf(stderr, "Error opening shard %s\n", shard_path);
-                exit(1);
-            }
-
-            // Read chunk from shard
-            char temp_chunk[chunk_size];
-            fread(temp_chunk, chunk_size, 1, shard_pointer);
-            temp_chunk[chunk_size] = '\0';
-
-            // Close shard
-            fclose(shard_pointer);
-
-            // Append chunk to combined
-            strcat(combined, temp_chunk);
-        }
-
-        printf("Combined: %s %zu\n", combined, total_size);
+        char *combined = malloc(sd->total_size + 1);
+        combine_shards(sd, combined, sd->total_size + 1);
+        printf("Recombined: %s\n", combined);
 
         // Modify
         memcpy(combined + offset, buf, size);
         printf("Modified: %s\n", combined);
 
         // Split buf into chunks
-        chunk_size = (total_size / n_machines) + 1;
-        char *message_chunks[chunk_size];
+        int new_chunk_size = (sd->total_size / n_machines) + 1;
+        char *message_chunks[new_chunk_size];
         split_into_shards(combined, message_chunks, n_machines);
 
         for (int i = 0; i < n_machines; i++) {
@@ -464,8 +455,9 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
             char shard_path[strlen(shardpoint) + SHARD_HASH_LEN +
                             SHARD_SUFF_LEN]; // Allocates a few extra characters, not a big deal
             strcpy(shard_path, shardpoint);
-            strcat(shard_path, hash_buf);
+            strcat(shard_path, sd->hash_buf);
             strcat(shard_path, shard_suffix);
+            free(shard_suffix);
 
             // Open shard file
             FILE *shard_pointer;
@@ -475,21 +467,17 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
                 exit(1);
             }
 
-            printf("Message chunk: %s, size: %d\n", message_chunks[i], chunk_size);
-            int xn = fwrite(message_chunks[i], chunk_size - 1, 1, shard_pointer);
-            printf("xn: %d\n");
+            printf("Message Chunk %d: %s\n", i, message_chunks[i]);
+            int xn = fwrite(message_chunks[i], 1, new_chunk_size, shard_pointer);
+            printf("Bytes written: %d\n", xn);
 
             fclose(shard_pointer);
-
-            free(shard_suffix);
         }
 
         // Write hash and chunk size to buf
-        pwrite(fi->fh, hash_buf, SHARD_HASH_LEN, 0);
-        pwrite(fi->fh, (const void *)&chunk_size, sizeof(int), SHARD_HASH_LEN);
-
-        // Free memory
-        free(hash_buf);
+        ftruncate(fi->fh, 0);
+        pwrite(fi->fh, sd->hash_buf, SHARD_HASH_LEN, 0);
+        pwrite(fi->fh, (const void *)&new_chunk_size, sizeof(int), SHARD_HASH_LEN);
 
     } else if (FLAG_TRUNCATE < 1 && offset == 0) { // Empty
         // Generate hash
@@ -530,7 +518,7 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
     FLAG_TRUNCATE = -1;
 
     fclose(header_pointer);
-    close_conn(client_connection);
+    //close_conn(client_connection);
 
     return size;
 }
@@ -572,10 +560,10 @@ int deffs_truncate(const char *path, off_t size)
 
     FLAG_TRUNCATE = size;
 
-    // Copy path to non-constant copy for fopen
-    char nonconst_path[strlen(storepoint) + strlen(path) + 1];
-    strcpy(nonconst_path, path);
-    strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
+    // Copy path to non-constant copy
+    int path_len = strlen(path) + strlen(storepoint) + 1;
+    char nonconst_path[path_len];
+    get_full_path(path, nonconst_path, path_len);
 
     if (size == 0) {
         // Open header file
@@ -629,10 +617,11 @@ int deffs_ftruncate(const char *path, off_t size, struct fuse_file_info *fi)
 int deffs_utimens(const char *path, const struct timespec ts[2])
 {
     int res;
-    // Copy path to non-constant copy for fopen
-    char nonconst_path[strlen(storepoint) + strlen(path) + 1];
-    strcpy(nonconst_path, path);
-    strcpy(nonconst_path, deffs_path_prepend(nonconst_path, storepoint));
+
+    // Copy path to non-constant copy
+    int path_len = strlen(path) + strlen(storepoint) + 1;
+    char nonconst_path[path_len];
+    get_full_path(path, nonconst_path, path_len);
 
     /* don't use utime/utimes since they follow symlinks */
     res = utimensat(0, nonconst_path, ts, AT_SYMLINK_NOFOLLOW);

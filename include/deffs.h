@@ -45,6 +45,12 @@ typedef struct deffs_dirp {
     off_t offset;
 } deffs_dirp;
 
+typedef struct deffs_shard_data {
+    int chunk_size;
+    int total_size;
+    char hash_buf[SHARD_HASH_LEN];
+} deffs_shard_data;
+
 static inline struct deffs_dirp *get_dirp(struct fuse_file_info *fi)
 {
     return (struct deffs_dirp *) (uintptr_t) fi->fh;

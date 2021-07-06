@@ -12,11 +12,28 @@ int deffs_getattr(const char *path, struct stat *stbuf)
 {
     int res;
 
-    path = deffs_path_prepend(path, storepoint);
+    // Copy path to non-constant copy
+    int path_len = strlen(path) + strlen(storepoint) + 1;
+    char nonconst_path[path_len];
+    get_full_path(path, nonconst_path, path_len);
 
-    res = lstat(path, stbuf);
+    res = lstat(nonconst_path, stbuf);
     if (res == -1)
         return -errno;
+
+    // Open header file
+    FILE *header_pointer;
+    header_pointer = fopen(nonconst_path, "r");
+    if (header_pointer == NULL) {
+        fprintf(stderr, "Could not open file %s for getattr\n", nonconst_path);
+        exit(1);
+    }
+
+    // Allocate and fill shard data
+    struct deffs_shard_data *sd = malloc(sizeof(struct deffs_shard_data));
+    read_shard_data(header_pointer, -1, -1, sd);
+
+    stbuf->st_size = sd->total_size;
 
     return 0;
 }
@@ -24,8 +41,6 @@ int deffs_getattr(const char *path, struct stat *stbuf)
 int deffs_fgetattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi)
 {
     int res;
-
-    path = deffs_path_prepend(path, storepoint);
 
     (void)path;
 

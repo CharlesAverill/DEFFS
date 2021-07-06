@@ -16,6 +16,8 @@
 #include "net/client.h"
 #include "net/server.h"
 
+int read_shard_data(FILE *header_pointer, size_t size, off_t offset, struct deffs_shard_data *sd);
+
 int deffs_create(const char *path, mode_t mode, struct fuse_file_info *fi);
 int deffs_open(const char *path, struct fuse_file_info *fi);
 

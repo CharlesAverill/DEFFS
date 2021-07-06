@@ -21,18 +21,17 @@ void split_into_shards(const char *in, char *out[], int n)
     }
 }
 
-const char *deffs_path_prepend(const char originalPath[], char to_prepend[])
+int get_full_path(const char *path, char *obuf, int size)
 {
-    // Prepend to_prepend to originalPath
     char *pch;
-    pch = strstr(originalPath, to_prepend);
+    pch = strstr(path, storepoint);
     if (pch == NULL) {
-        char newPath[strlen(originalPath) + strlen(to_prepend)];
-        strcpy(newPath, to_prepend);
-        strcat(newPath, originalPath);
-
-        originalPath = newPath;
+        strcpy(obuf, storepoint);
+        strcat(obuf, path);
+        obuf[size] = '\0';
+        return 0;
     }
+    return 1;
 }
 
 void random_string(char output[], int length)
