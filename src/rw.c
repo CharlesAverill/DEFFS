@@ -8,13 +8,8 @@
 
 #include "rw.h"
 
-int n_machines;
-int port;
-
 int FLAG_OPENED_EMPTY_FILE;
 int FLAG_TRUNCATE;
-
-// TODO: Replace all exit calls with error returns
 
 int read_shard_data(FILE *header_pointer, size_t size, off_t offset, struct deffs_shard_data *sd)
 {
@@ -212,7 +207,7 @@ int deffs_unlink(const char *path)
     header_pointer = fopen(nonconst_path, "r+");
     if (header_pointer == NULL) {
         fprintf(stderr, "Could not open file %s for encrypting, %s\n", nonconst_path, path);
-        exit(1);
+        return 1;
     }
 
     // Get header size
@@ -338,7 +333,7 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset, struct fu
         header_pointer = fopen(nonconst_path, "r");
         if (header_pointer == NULL) {
             fprintf(stderr, "Could not open file %s for decrypting\n", nonconst_path);
-            exit(1);
+            return 1;
         }
 
         // Allocate and fill shard data
@@ -351,6 +346,8 @@ int deffs_read(const char *path, char *buf, size_t size, off_t offset, struct fu
         printf("Combining\n");
         combine_shards(sd, combined, sd->total_size + 1);
         printf("Combined: %s\n", combined);
+
+        free(sd);
 
         strcpy(buf, combined);
         printf("After copy: %s\n", buf);
@@ -415,7 +412,7 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
     header_pointer = fopen(nonconst_path, "r");
     if (header_pointer == NULL) {
         fprintf(stderr, "Could not open file %s for encrypting, %s\n", nonconst_path, path);
-        exit(1);
+        return 1;
     }
 
     // Get header size
@@ -464,7 +461,7 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
             shard_pointer = fopen(shard_path, "w");
             if (shard_pointer == NULL) {
                 fprintf(stderr, "Error opening shard %s\n", shard_path);
-                exit(1);
+                return 1;
             }
 
             printf("Message Chunk %d: %s\n", i, message_chunks[i]);
@@ -478,6 +475,8 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
         ftruncate(fi->fh, 0);
         pwrite(fi->fh, sd->hash_buf, SHARD_HASH_LEN, 0);
         pwrite(fi->fh, (const void *)&new_chunk_size, sizeof(int), SHARD_HASH_LEN);
+
+        free(sd);
 
     } else if (FLAG_TRUNCATE < 1 && offset == 0) { // Empty
         // Generate hash
@@ -502,7 +501,7 @@ int deffs_write(const char *path, const char *buf, size_t size, off_t offset,
             shard_pointer = fopen(shard_path, "w");
             if (shard_pointer == NULL) {
                 fprintf(stderr, "Error opening shard %s\n", shard_path);
-                exit(1);
+                return 1;
             }
 
             int xw = pwrite(fileno(shard_pointer), message_chunks[i], chunk_size, 0);
@@ -571,7 +570,7 @@ int deffs_truncate(const char *path, off_t size)
         header_pointer = fopen(nonconst_path, "r");
         if (header_pointer == NULL) {
             fprintf(stderr, "Could not open file %s for truncating, %s\n", nonconst_path, path);
-            exit(1);
+            return 1;
         }
 
         // Read hash from header file
@@ -595,7 +594,7 @@ int deffs_truncate(const char *path, off_t size)
         }
     } else {
         fprintf(stderr, "Trying to truncate %s to size %zu", nonconst_path, size);
-        exit(1);
+        return 1;
     }
 
     return 0;

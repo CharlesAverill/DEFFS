@@ -26,13 +26,14 @@ int deffs_getattr(const char *path, struct stat *stbuf)
     header_pointer = fopen(nonconst_path, "r");
     if (header_pointer == NULL) {
         fprintf(stderr, "Could not open file %s for getattr\n", nonconst_path);
-        exit(1);
+        return 1;
     }
 
     // Allocate and fill shard data
     struct deffs_shard_data *sd = malloc(sizeof(struct deffs_shard_data));
     read_shard_data(header_pointer, -1, -1, sd);
 
+    // Modify st_size so that the filesystem knows how many bytes to display when combining shards
     stbuf->st_size = sd->total_size;
 
     return 0;
